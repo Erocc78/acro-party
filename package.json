@@ -1,0 +1,15 @@
+{
+  "name": "acro-party",
+  "version": "0.1.0",
+  "description": "Acro Party: a phone-controlled acronym party game (playable prototype)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/sim.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

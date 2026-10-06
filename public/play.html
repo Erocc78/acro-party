@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#14122b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Acro Party</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { font-size: 18px; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); min-height: 100vh; display: flex; flex-direction: column; gap: 16px; }
+  .top { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+  .top .me { display: flex; align-items: center; gap: 8px; font-weight: 600; flex: 1; min-width: 0; }
+  .top .me span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top .score { font-weight: 700; color: var(--accent); }
+  .top .mute { background: none; font-size: 22px; padding: 4px; }
+  h1 { font-size: 30px; margin: 0; line-height: 1.15; }
+  .kicker { color: var(--accent); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; font-size: 14px; }
+  .screen { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .middle { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 14px; }
+  .bigicon { font-size: 84px; line-height: 1; }
+  .field { width: 100%; min-height: 58px; padding: 14px 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg-2); font-size: 20px; outline: none; }
+  .field:focus { border-color: var(--accent); }
+  .code-field { text-transform: uppercase; letter-spacing: 10px; text-align: center; font-size: 34px; font-weight: 700; }
+  .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .avatars button { font-size: 30px; padding: 8px 0; border-radius: 12px; background: var(--bg-2); border: 2px solid transparent; }
+  .avatars button.on { border-color: var(--accent); background: var(--card-2); }
+  .phone-tiles { font-size: 46px; }
+  .phone-tiles.long { font-size: 34px; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .words { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+  .words span { padding: 2px 8px; border-radius: 8px; background: var(--card-2); font-size: 15px; }
+  .words span.off { box-shadow: 0 0 0 2px var(--pink) inset; }
+  .words span.badword { background: var(--bad); color: #fff; }
+  .status { padding: 12px 14px; border-radius: 12px; background: #173d2b; color: #bff5d6; font-weight: 600; }
+  .opts { display: grid; gap: 10px; }
+  .opt { text-align: left; padding: 16px; border-radius: 14px; background: var(--card); border: 2px solid var(--line); font-size: 19px; min-height: 58px; }
+  .opt.on { border-color: var(--accent); background: var(--card-2); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .opt.mine { opacity: .45; cursor: not-allowed; }
+  .opt .tag { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .pair { display: grid; gap: 8px; }
+  .pair .ab { display: grid; gap: 8px; }
+  .pts { font-size: 56px; font-weight: 700; color: var(--accent); }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .note { font-size: 15px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top" id="top"></div>
+  <div class="screen" id="app"></div>
+</div>
+<div id="paused" class="paused-banner hidden">⏸ Paused</div>
+<script src="/shared/rules.js"></script>
+<script src="/common.js"></script>
+<script src="/sound.js"></script>
+<script src="/play.js"></script>
+</body>
+</html>

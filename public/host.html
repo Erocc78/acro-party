@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acro Party · Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { font-size: 22px; }
+  header { display: flex; align-items: center; gap: 16px; padding: 18px 32px; }
+  header .logo { font-size: 28px; font-weight: 700; }
+  header .logo span { color: var(--accent); }
+  header .spacer { flex: 1; }
+  header .roomcode { font-weight: 700; letter-spacing: 3px; color: var(--muted); }
+  header .roomcode b { color: var(--text); }
+  #app { padding: 8px 32px 40px; max-width: 1500px; margin: 0 auto; }
+  h2 { font-size: 40px; margin: 0 0 8px; }
+  .kicker { color: var(--accent); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; font-size: 20px; }
+  .stage { display: grid; justify-items: center; gap: 28px; text-align: center; padding-top: 3vh; }
+  .big-tiles { font-size: clamp(96px, 12vw, 200px); }
+  .med-tiles { font-size: 64px; }
+  .sm-tiles { font-size: 40px; }
+
+  /* mode picker */
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 980px; margin: 4vh auto 0; }
+  .mode { text-align: left; padding: 32px; display: grid; gap: 10px; border: 2px solid var(--line); }
+  .mode:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .mode b { font-size: 34px; }
+  .mode ul { margin: 6px 0 0; padding-left: 22px; color: var(--muted); line-height: 1.5; }
+
+  /* lobby */
+  .lobby { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.2fr); gap: 32px; align-items: start; }
+  .join { display: grid; gap: 18px; justify-items: center; text-align: center; }
+  .code-tiles { font-size: clamp(56px, 6.5vw, 96px); flex-wrap: nowrap; }
+  .code-tiles .tile { background: var(--text); }
+  #qr { background: #fff; padding: 14px; border-radius: 16px; line-height: 0; }
+  #qr img, #qr canvas { width: 220px; height: 220px; }
+  .url { font-size: 26px; font-weight: 600; word-break: break-all; }
+  .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 14px 0 24px; }
+  .chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--card-2); border-radius: 14px; font-weight: 600; animation: pop .3s ease both; }
+  .chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip.off { opacity: .45; }
+  .chip .x { background: none; color: var(--muted); font-size: 22px; padding: 0 4px; }
+  .slot { border: 2px dashed var(--line); border-radius: 14px; min-height: 54px; }
+  .settings { display: grid; gap: 14px; margin-bottom: 24px; }
+  .setting { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .setting > span { min-width: 150px; color: var(--muted); }
+  details.more summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 19px; }
+  details.more[open] summary { color: var(--text); }
+  .seg { display: inline-flex; background: var(--bg-2); border-radius: 12px; padding: 4px; gap: 4px; }
+  .seg button { background: none; padding: 8px 18px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); }
+
+  /* answering / voting */
+  .progress { font-size: 30px; color: var(--muted); }
+  .progress b { color: var(--text); }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; width: 100%; text-align: left; }
+  .option { display: flex; gap: 18px; align-items: center; font-size: 30px; font-weight: 500; animation: pop .35s ease both; }
+  .option .n { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
+  .toprow { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 24px; }
+
+  /* results */
+  .results { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; text-align: left; width: 100%; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; align-items: center; animation: pop .4s ease both; }
+  .row + .row { margin-top: 12px; }
+  .row .txt { font-size: 30px; font-weight: 500; }
+  .row .by { color: var(--muted); font-size: 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row .votes { grid-row: span 2; font-size: 40px; font-weight: 700; text-align: center; min-width: 80px; }
+  .row .votes small { display: block; font-size: 15px; color: var(--muted); font-weight: 500; }
+  .row.winner { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .board .line { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 24px; }
+  .board .line:last-child { border: 0; }
+  .board .rank { width: 32px; color: var(--muted); font-weight: 700; }
+  .board .nm { flex: 1; font-weight: 600; }
+  .board .delta { color: var(--good); font-weight: 600; font-size: 20px; }
+  .board .pts { font-weight: 700; min-width: 56px; text-align: right; }
+
+  /* lightning */
+  .vs { display: flex; align-items: center; gap: 36px; font-size: 48px; font-weight: 700; }
+  .vs .who { display: grid; justify-items: center; gap: 8px; }
+  .vs .who .avatar { font-size: 96px; }
+  .vs .mid { color: var(--pink); }
+  .fin-status { display: flex; gap: 24px; }
+  .fin-status .card { min-width: 280px; display: flex; gap: 14px; align-items: center; font-size: 26px; font-weight: 600; }
+  .fin-status .done { color: var(--good); }
+  .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; text-align: left; }
+  .pair { display: grid; gap: 12px; align-content: start; }
+  .pair .opt { background: var(--bg-2); border-radius: 12px; padding: 12px 14px; font-size: 24px; display: grid; gap: 4px; }
+  .pair .opt .lbl { font-weight: 700; color: var(--accent); }
+  .pair .opt.won { box-shadow: 0 0 0 3px var(--accent) inset; }
+  .pair .opt .meta { font-size: 17px; color: var(--muted); }
+  .reveal { animation: pop .5s ease both; }
+  .champ { display: grid; justify-items: center; gap: 10px; }
+  .champ .avatar { font-size: 120px; animation: pulse 1.6s ease-in-out infinite; }
+  .champ .title { font-size: 64px; font-weight: 700; color: var(--accent); }
+  .actions { display: flex; gap: 14px; justify-content: center; }
+  @media (max-width: 900px) {
+    .lobby, .results { grid-template-columns: 1fr; }
+    .pairs { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; flex-wrap: wrap; }
+    #app { padding: 8px 16px 32px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Acro<span>Party</span></div>
+  <span id="modeBadge"></span>
+  <div class="spacer"></div>
+  <div id="roomcode" class="roomcode"></div>
+  <div id="controls"></div>
+</header>
+<main id="app"></main>
+<div id="paused" class="paused-banner hidden">⏸ Paused</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/common.js"></script>
+<script src="/sound.js"></script>
+<script src="/soundtrack.js"></script>
+<script src="/announcer.js"></script>
+<script src="/host.js"></script>
+</body>
+</html>
