@@ -1,6 +1,6 @@
 // Helpers shared by the TV and phone screens.
 window.Acro = {
-  VERSION: 'v2.3',
+  VERSION: 'v0.23',
   offset: 0,
 
   async post(url, body) {

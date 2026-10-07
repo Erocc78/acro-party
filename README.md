@@ -93,6 +93,7 @@ How it protects your credits: the key stays on the server, only the TV screen of
 | `public/soundtrack.js` | Decides which music and effects play at each moment of the game |
 | `public/play.html`, `public/play.js` | Phone screen |
 | `public/shared/rules.js` | Answer checking, shared by phones and server |
+| `CHANGELOG.md` | Revision history |
 | `test/sim.js` | Automated test that plays full games with bots (`npm test`) |
 
 The QR code and the rounded font load from the internet. Without internet access, the game still works: players type the address shown on the TV, and a standard font is used.
