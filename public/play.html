@@ -36,6 +36,15 @@
   .words span { padding: 2px 8px; border-radius: 8px; background: var(--card-2); font-size: 15px; }
   .words span.off { box-shadow: 0 0 0 2px var(--pink) inset; }
   .words span.badword { background: var(--bad); color: #fff; }
+  .ans-wrap { position: relative; }
+  .naughty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+    font-size: 30px; font-weight: 900; letter-spacing: .04em; color: #fff; background: var(--bad); border-radius: 14px;
+    opacity: 0; transform: scale(.6) rotate(-4deg); }
+  .naughty.show { animation: naughty .9s ease-out both; }
+  @keyframes naughty { 0% { opacity: 0; transform: scale(.6) rotate(-4deg); } 15% { opacity: 1; transform: scale(1.08) rotate(2deg); }
+    30% { transform: scale(1) rotate(-1deg); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.95); } }
+  .field.shake { animation: field-shake .35s linear 2; }
+  @keyframes field-shake { 0%,100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   .status { padding: 12px 14px; border-radius: 12px; background: #173d2b; color: #bff5d6; font-weight: 600; }
   .opts { display: grid; gap: 10px; }
   .opt { text-align: left; padding: 16px; border-radius: 14px; background: var(--card); border: 2px solid var(--line); font-size: 19px; min-height: 58px; }

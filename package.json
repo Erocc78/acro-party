@@ -1,6 +1,6 @@
 {
   "name": "acro-party",
-  "version": "0.26.0",
+  "version": "0.29.0",
   "description": "Acro Party: a phone-controlled acronym party game (playable prototype)",
   "main": "server.js",
   "scripts": {

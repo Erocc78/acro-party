@@ -165,7 +165,7 @@
     return `
       <div class="row-between"><div class="kicker">${label}</div>${timerHtml(64, 6)}</div>
       ${tiles(s.letters, tileClass(s.letters) + ' live')}
-      <input class="field" id="ans" maxlength="80" autocomplete="off" autocorrect="on" autocapitalize="words" enterkeyhint="send" placeholder="One word per letter" value="${esc(s.myAnswer || '')}">
+      <div class="ans-wrap"><input class="field" id="ans" maxlength="80" autocomplete="off" autocorrect="on" autocapitalize="words" enterkeyhint="send" placeholder="One word per letter" value="${esc(s.myAnswer || '')}"><div class="naughty" id="naughty" aria-live="assertive"></div></div>
       <div class="words" id="words"></div>
       <div id="hint" class="note"></div>
       <button class="btn block" id="submit" disabled>${s.myAnswer ? 'Update answer' : 'Submit'}</button>
@@ -276,10 +276,11 @@
         t.classList.toggle('dim', !c.perLetter[i]);
       });
       document.getElementById('words').innerHTML = c.words
-        .map((w, i) => `<span class="${i === badWord ? 'badword' : !c.perLetter[i] ? 'off' : ''}">${esc(w)}</span>`)
+        .map((w, i) => `<span class="${i === badWord ? 'badword' : !c.perLetter[i] ? 'off' : ''}">${i === badWord ? '✱✱✱' : esc(w)}</span>`)
         .join('');
       const hint = document.getElementById('hint');
-      if (c.tooLong) hint.textContent = 'Too long: 80 characters max.';
+      if (badWord != null) hint.textContent = 'That word is not allowed in kid-friendly games.';
+      else if (c.tooLong) hint.textContent = 'Too long: 80 characters max.';
       else if (c.tooMany) hint.textContent = `Too many words: use exactly ${letters.length}.`;
       else if (!c.ok && c.words.length) {
         const wrong = c.perLetter.findIndex((ok, i) => !ok && c.words[i]);
@@ -298,10 +299,52 @@
         btn.textContent = 'Update answer';
       } catch (e) {
         badWord = typeof e.badWord === 'number' && e.badWord >= 0 ? e.badWord : null;
+        if (badWord != null) {
+          naughty(badWord);
+          return;
+        }
         msg.innerHTML = `<div class="err">${esc(e.message)}</div>`;
         Sound.play('blip');
       }
       refresh();
+    };
+    // Kid-friendly filter: flash "Naughty!" over the answer, then delete just that word
+    // and put the cursor where it was so the player can type a new one.
+    const naughty = (index) => {
+      const flash = document.getElementById('naughty');
+      const letter = letters[index] || '';
+      flash.textContent = 'Naughty!';
+      flash.classList.remove('show');
+      void flash.offsetWidth; // restart the animation
+      flash.classList.add('show');
+      ans.classList.add('shake');
+      Sound.play('blip');
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      msg.innerHTML = '';
+      refresh();
+      setTimeout(() => {
+        if (!document.body.contains(ans)) return;
+        flash.classList.remove('show');
+        ans.classList.remove('shake');
+        // Find the offending word in what was typed (same splitting as the answer rules) and remove it.
+        const re = /\S+/g;
+        let m, n = 0, cut = null;
+        while ((m = re.exec(ans.value))) {
+          if (!/[a-z]/i.test(m[0])) continue;
+          if (n++ === index) { cut = m; break; }
+        }
+        if (cut) {
+          const before = ans.value.slice(0, cut.index);
+          const after = ans.value.slice(cut.index + cut[0].length).replace(/^\s+/, '');
+          ans.value = before + (after ? ' ' + after : '');
+          const pos = before.length;
+          ans.focus();
+          try { ans.setSelectionRange(pos, pos); } catch {}
+        }
+        badWord = null;
+        msg.innerHTML = `<div class="err">Oops! Try a different word for ${esc(letter)}.</div>`;
+        refresh();
+      }, 900);
     };
     ans.addEventListener('input', () => {
       badWord = null;

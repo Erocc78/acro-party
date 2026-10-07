@@ -12,8 +12,8 @@
   // Each entry: array of variants. "kid" and "adult" override "any" when present.
   const LINES = {
     welcome: {
-      kid: ["Welcome to Acro Party! I'm Gene Woolery, your host. Grab your phones and join with the code on the screen!", "Hello, hello, hello! I'm Gene Woolery, and this is Acro Party! Scan the code to join the fun!"],
-      adult: ["Good evening, and welcome to Acro Party! I'm Gene Woolery, your host for tonight. Phones out, and join with the code on screen.", "Welcome, welcome! I'm Gene Woolery, and this is Acro Party, the only game show where bad ideas score points. Join with the code on screen."],
+      kid: ["Welcome to Acro Party! I'm Gene Woolery, your host. Here, everyday letters like the ones you see all the time turn into something totally silly, and the sillier they get, the more points you score! Grab your phones and join with the code on the screen!", "Hello, hello, hello! I'm Gene Woolery, and this is Acro Party, where ordinary acronyms turn into something completely different and score you points! Scan the code to join the fun!"],
+      adult: ["Good evening, and welcome to Acro Party! I'm Gene Woolery, your host for tonight. Phones out, and join with the code on screen.", "Welcome, welcome! I'm Gene Woolery, and this is Acro Party, the game show where your everyday acronyms turn into something completely different, and the funnier they get, the more points you score! Join with the code on screen."],
     },
     join: { any: ['Welcome, {name}!', 'Give it up for {name}!', '{name} has entered the building!', "Look who's here, it's {name}!", 'Say hello to {name}!', '{name} is in the house!'] },
     ready: { any: ["We've got enough players! Host, press start whenever you're ready.", 'That makes {count}! We can start whenever you like.'] },

@@ -60,7 +60,7 @@ How it protects your credits: the key stays on the server, only the TV screen of
 
 ## What's in the prototype
 
-- Kid-friendly or Adult mode, chosen first. Kid mode turns on the naughty word filter for answers and nicknames, skips rude letter sets, and starts with +10 seconds of kids' extra time. Adult mode asks every player to confirm they're 18 or older.
+- Kid-friendly or Adult mode, chosen first. Kid mode turns on the naughty word filter for answers and nicknames (a naughty answer flashes "Naughty!" on the phone, then just that word is deleted so the player can type a new one), skips rude letter sets, and starts with +10 seconds of kids' extra time. Adult mode asks every player to confirm they're 18 or older.
 - 5 to 8 rounds, set in the lobby. Letters go 3, 4, 5, 6, 7, then back to 3, 4, 5.
 - **The clock waits for Gene.** Each round's letters are revealed while Gene announces them; the answer clock starts and entries open only after he finishes talking ("Go!"). The lightning-round intro and each lightning reveal wait for him too. If the TV disconnects, the game moves on after 25 seconds at most.
 - Answer timers grow with the acronym: 20 s for 3 letters, plus 5 s per extra letter (20, 25, 30, 35, 40 s). Kids' extra time adds +10 or +20 s to every round. Live letter checking on the phone.
