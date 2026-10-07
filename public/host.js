@@ -85,7 +85,7 @@
 
   function onState(s) {
     state = s;
-    document.getElementById('paused').classList.toggle('hidden', !s.paused);
+    drawPaused(s);
     document.getElementById('modeBadge').innerHTML = s.mode === 'kid' ? '<span class="badge kid">🧸 Kid-friendly</span>' : '<span class="badge adult">🍸 Adult · 18+</span>';
     document.getElementById('roomcode').innerHTML = s.phase === 'lobby' ? '' : `Room <b>${s.code}</b>`;
     drawControls(s);
@@ -108,6 +108,26 @@
     }
     update(s);
   }
+
+  // Pause screen with a big Resume button (the overlay covers the top bar, so it needs its own).
+  function drawPaused(s) {
+    const el = document.getElementById('paused');
+    el.classList.toggle('hidden', !s.paused);
+    if (!s.paused) return;
+    if (!el.querySelector('#resumeBtn')) {
+      el.innerHTML = `<div class="paused-box"><div class="paused-title">⏸ Paused</div>
+        <button class="btn" id="resumeBtn" style="font-size:28px;min-height:72px;padding:16px 40px">▶ Resume game</button>
+        <div class="muted" style="font-size:18px">or press the space bar</div></div>`;
+      el.querySelector('#resumeBtn').onclick = () => host('resume');
+    }
+  }
+  // Space bar pauses and resumes during a game.
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || !state || !session || ['lobby', 'gameover'].includes(state.phase)) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement && document.activeElement.tagName)) return;
+    e.preventDefault();
+    host(state.paused ? 'resume' : 'pause');
+  });
 
   function drawControls(s) {
     const el = document.getElementById('controls');

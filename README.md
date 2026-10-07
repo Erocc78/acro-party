@@ -54,8 +54,9 @@ Optional settings (also environment variables):
 | `ELEVENLABS_VOICE_ID` | `nPczCjzI2devNBz1zQrb` (Brian, deep American narrator) | Any voice ID from your ElevenLabs voice library |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` (most lifelike) | `eleven_flash_v2_5` is faster and cheaper |
 | `ELEVENLABS_DAILY_CHAR_LIMIT` | `40000` | Safety cap on characters sent per day. A game uses about 3,000. |
+| `ELEVENLABS_CONCURRENCY` | `2` | How many lines are generated at the same time. Raise it if your ElevenLabs plan allows more simultaneous requests. |
 
-How it protects your credits: the key stays on the server, only the TV screen of a live room can request speech, every line is generated once and reused (repeated lines are free), and the daily cap stops runaway use. If ElevenLabs is unavailable or the cap is hit, Ace switches to the browser voice for that line, so the game keeps going.
+How it protects your credits: the key stays on the server, only the TV screen of a live room can request speech, every line is generated once and reused (repeated lines are free), and the daily cap stops runaway use. Requests wait in line (2 at a time by default) and are retried automatically if ElevenLabs is busy, so Ace stays in the AI voice. If a line still can't be generated (service down or cap reached), it appears as a caption only. Ace never switches to the robot voice mid-game.
 
 ## What's in the prototype
 
@@ -72,7 +73,7 @@ How it protects your credits: the key stays on the server, only the TV screen of
 - **Sound settings** under "Sound and announcer" in the lobby: music volume, effects volume and ticker on or off. The 🔊 button at the top of the TV mutes everything at once.
 - **Phones** play a ding when you submit and a blip when you vote, and tick and buzz in your hand for the last 5 seconds if you haven't answered yet. Each phone has its own 🔊 mute button.
 - **Trippy space background** on every screen: turning psychedelic color swirls, nebula glows and a starfield drifting toward you. It warps to light speed when new letters appear. In the lightning round it goes into hyperdrive: rainbow stars at about 6 times normal speed, shockwave rings, a throbbing nebula and glowing letter tiles, all pulsing in time with the music (about once a second, so it's intense without strobing). It stays still for anyone whose device is set to reduce motion.
-- Host controls: pause, skip, remove a player, change settings, play again.
+- Host controls: pause (a big **▶ Resume game** button appears on the pause screen; the space bar also pauses and resumes), skip, remove a player, change settings, play again.
 - Phones rejoin automatically if they lock or drop off; seats are held for 2 minutes.
 
 ## Files

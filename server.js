@@ -29,52 +29,89 @@ let ttsDay = '';
 let ttsUsed = 0;
 const ttsInflight = new Map();
 
-async function ttsAudio(text) {
+// ElevenLabs limits how many requests can run at once (it depends on your plan), and turns
+// extra ones away with a 429. So requests wait in line here, a few at a time, and are retried
+// if ElevenLabs is busy. Lines nobody is waiting for any more (the game moved on) are skipped.
+const TTS_CONCURRENCY = Math.max(1, Number(process.env.ELEVENLABS_CONCURRENCY || 2));
+let ttsActive = 0;
+const ttsWaiters = [];
+const ttsSlot = () => (ttsActive < TTS_CONCURRENCY ? (ttsActive++, Promise.resolve()) : new Promise((r) => ttsWaiters.push(r)));
+const ttsRelease = () => {
+  const next = ttsWaiters.shift();
+  if (next) next();
+  else ttsActive--;
+};
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function callElevenLabs(text) {
+  let last = { status: 502, error: 'AI voice service unreachable.' };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const r = await fetch(`${TTS.base}/v1/text-to-speech/${encodeURIComponent(TTS.voice)}?output_format=mp3_44100_128`, {
+        method: 'POST',
+        headers: { 'xi-api-key': TTS.key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+        body: JSON.stringify({
+          text,
+          model_id: TTS.model,
+          voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true },
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (r.ok) return { buf: Buffer.from(await r.arrayBuffer()) };
+      const msg = await r.text().catch(() => '');
+      console.error(`ElevenLabs error ${r.status} (attempt ${attempt + 1}): ${msg.slice(0, 300)}`);
+      last = { status: 502, error: `AI voice service error (${r.status}).` };
+      if (r.status !== 429 && r.status < 500) return last; // a real problem (bad key, bad voice ID): don't retry
+    } catch (e) {
+      console.error(`ElevenLabs request failed (attempt ${attempt + 1}): ${e.message}`);
+    }
+    await pause(500 * 2 ** attempt); // 0.5 s, 1 s, 2 s
+  }
+  return last;
+}
+
+function ttsAudio(text) {
   const id = crypto.createHash('sha1').update(`${TTS.voice}|${TTS.model}|${text}`).digest('hex');
   if (ttsCache.has(id)) {
     const buf = ttsCache.get(id);
     ttsCache.delete(id);
     ttsCache.set(id, buf); // keep recently used lines
-    return { buf };
+    return { entry: null, promise: Promise.resolve({ buf }) };
   }
-  if (ttsInflight.has(id)) return ttsInflight.get(id);
-  const job = (async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (today !== ttsDay) {
-      ttsDay = today;
-      ttsUsed = 0;
+  if (ttsInflight.has(id)) {
+    const entry = ttsInflight.get(id);
+    entry.waiters++;
+    return { entry, promise: entry.promise };
+  }
+  const entry = { waiters: 1 };
+  entry.promise = (async () => {
+    await ttsSlot();
+    try {
+      if (entry.waiters <= 0) return { status: 499, error: 'No longer needed.' };
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== ttsDay) {
+        ttsDay = today;
+        ttsUsed = 0;
+      }
+      if (ttsUsed + text.length > TTS.dailyLimit) return { status: 429, error: 'Daily AI voice limit reached.' };
+      const out = await callElevenLabs(text);
+      if (!out.buf) return out;
+      ttsUsed += text.length;
+      ttsCache.set(id, out.buf);
+      ttsCacheBytes += out.buf.length;
+      while (ttsCacheBytes > 40e6) {
+        const [k, v] = ttsCache.entries().next().value;
+        ttsCache.delete(k);
+        ttsCacheBytes -= v.length;
+      }
+      return out;
+    } finally {
+      ttsRelease();
+      ttsInflight.delete(id);
     }
-    if (ttsUsed + text.length > TTS.dailyLimit) return { status: 429, error: 'Daily AI voice limit reached.' };
-    const r = await fetch(`${TTS.base}/v1/text-to-speech/${encodeURIComponent(TTS.voice)}?output_format=mp3_44100_128`, {
-      method: 'POST',
-      headers: { 'xi-api-key': TTS.key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-      body: JSON.stringify({
-        text,
-        model_id: TTS.model,
-        voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true },
-      }),
-    });
-    if (!r.ok) {
-      const msg = await r.text().catch(() => '');
-      console.error(`ElevenLabs error ${r.status}: ${msg.slice(0, 300)}`);
-      return { status: 502, error: `AI voice service error (${r.status}).` };
-    }
-    const buf = Buffer.from(await r.arrayBuffer());
-    ttsUsed += text.length;
-    ttsCache.set(id, buf);
-    ttsCacheBytes += buf.length;
-    while (ttsCacheBytes > 40e6) {
-      const [k, v] = ttsCache.entries().next().value;
-      ttsCache.delete(k);
-      ttsCacheBytes -= v.length;
-    }
-    return { buf };
-  })().catch((e) => {
-    console.error('ElevenLabs request failed:', e.message);
-    return { status: 502, error: 'AI voice service unreachable.' };
-  }).finally(() => ttsInflight.delete(id));
-  ttsInflight.set(id, job);
-  return job;
+  })();
+  ttsInflight.set(id, entry);
+  return { entry, promise: entry.promise };
 }
 
 const rooms = new Map(); // code -> { room, streams: Set<{res, role, playerId}> }
@@ -197,7 +234,16 @@ async function api(req, res, pathname) {
     const text = String(body.text || '').replace(/\s+/g, ' ').trim().slice(0, 400);
     if (!text) return sendJson(res, 400, { error: 'No text.' });
     room.touch();
-    const out = await ttsAudio(text);
+    const { entry, promise } = ttsAudio(text);
+    let gone = false;
+    res.on('close', () => {
+      if (!res.writableEnded && !gone) {
+        gone = true;
+        if (entry) entry.waiters--; // the TV gave up on this line
+      }
+    });
+    const out = await promise;
+    if (res.destroyed) return;
     if (!out.buf) return sendJson(res, out.status || 502, { error: out.error });
     res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': out.buf.length, 'Cache-Control': 'no-store' });
     return res.end(out.buf);

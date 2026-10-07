@@ -196,15 +196,26 @@
   }).catch(() => {});
   const useAI = () => settings.mode === 'ai' && aiAvailable;
 
+  // Ask our server for this line in the AI voice. Returns { promise, abort }.
   function fetchTTS(text) {
     const session = Acro.store.get('acro-host') || {};
-    return fetch('/api/tts', {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const promise = fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: session.code, hostToken: session.hostToken, text }),
+      signal: ctrl.signal,
     })
-      .then((r) => (r.ok ? r.blob() : null))
-      .catch(() => null);
+      .then(async (r) => {
+        if (r.ok) return r.blob();
+        const j = await r.json().catch(() => ({}));
+        console.warn('[Ace] AI voice unavailable for a line:', r.status, j.error || '');
+        return null;
+      })
+      .catch(() => null)
+      .finally(() => clearTimeout(timer));
+    return { promise, abort: () => ctrl.abort() };
   }
   let currentAudio = null;
   function stopAudio() {
@@ -226,9 +237,11 @@
   function say(text, { interrupt = false } = {}) {
     if (!text || settings.mode === 'off') return;
     // Start generating the AI audio right away so it's ready when it's this line's turn.
-    const item = { text, audio: useAI() ? fetchTTS(text) : null };
+    const tts = useAI() ? fetchTTS(text) : null;
+    const item = { text, audio: tts ? tts.promise : null, abort: tts ? tts.abort : null };
     if (interrupt) {
-      // A new moment in the game: drop what's queued and cut off the current line.
+      // A new moment in the game: drop what's queued (and stop generating it) and cut off the current line.
+      queue.forEach((q) => q.abort && q.abort());
       queue = [item];
       if (speaking) {
         token++;
@@ -279,26 +292,15 @@
       clearTimeout(captionTimer);
       next();
     };
-    const speakBrowser = () => {
-      const u = new SpeechSynthesisUtterance(text);
-      const v = chooseVoice();
-      if (v) u.voice = v;
-      u.rate = 0.96;
-      u.pitch = 0.62;
-      u.onend = done;
-      u.onerror = done;
-      captionTimer = setTimeout(done, readMs + 6000);
-      synth.speak(u);
-    };
     if (item.audio) {
       // AI voice. If it fails, fall back to the browser voice (or captions) for this line.
-      captionTimer = setTimeout(done, 20000);
+      captionTimer = setTimeout(done, 30000);
       item.audio.then((blob) => {
         if (my !== token) return;
         if (!blob) {
+          // Keep the show consistent: never switch to the robot voice mid-game. Show the caption instead.
           clearTimeout(captionTimer);
-          if (synth && voices().length) speakBrowser();
-          else captionTimer = setTimeout(done, readMs);
+          captionTimer = setTimeout(done, readMs);
           return;
         }
         const url = URL.createObjectURL(blob);
