@@ -84,3 +84,5 @@ button { cursor: pointer; border: 0; }
   position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,8,25,.72);
   font-size: 40px; font-weight: 700; z-index: 50; backdrop-filter: blur(2px);
 }
+
+.next-in { display: flex; align-items: center; gap: 12px; font-size: 20px; }

@@ -49,14 +49,38 @@
     @keyframes bg-throb { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
     html.bg-intense .bg-vignette { animation: bg-vig .822s ease-in-out infinite; }
     @keyframes bg-vig { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
-    /* Letter tiles glow on the beat (skips tiles that are still dropping in) */
-    html.bg-intense .tiles:not(.drop) .tile { animation: tile-glow .822s ease-in-out infinite; }
+    /* Urgency: red shading in the lightning round. A red glow creeps in from the edges and throbs on the beat,
+       the nebula and swirls turn red, and an alarm-red ring joins the shockwaves. */
+    .bg-red { position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: 0; transition: opacity 1.2s;
+      background:
+        radial-gradient(ellipse at center, rgba(255, 20, 40, 0) 30%, rgba(255, 20, 40, .38) 72%, rgba(200, 0, 20, .7) 100%),
+        linear-gradient(180deg, rgba(160, 0, 20, .28), rgba(60, 0, 10, .12) 50%, rgba(160, 0, 20, .28)); }
+    html.bg-intense .bg-red { opacity: 1; animation: bg-redthrob .822s ease-in-out infinite; }
+    @keyframes bg-redthrob { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+    html.bg-intense .bg-nebula { filter: hue-rotate(-40deg) saturate(1.5); }
+    html.bg-intense .bg-trip::before { filter: sepia(1) saturate(6) hue-rotate(-50deg); }
+    html.bg-intense .bg-pulse { background: radial-gradient(circle, transparent 0 20%, rgba(255, 30, 50, .42) 26%, transparent 33%, rgba(255, 90, 40, .3) 42%, transparent 50%, rgba(255, 210, 63, .2) 58%, transparent 66%); }
+    html.bg-intense { background: #1a0308 !important; }
+    /* Letter tiles glow red on the beat and shake (skips tiles that are still dropping in) */
+    html.bg-intense .tiles:not(.drop) .tile { animation: tile-glow .822s ease-in-out infinite, tile-shake .41s linear infinite; }
+    html.bg-intense .tiles:not(.drop) .tile:nth-child(even) { animation-delay: 0s, -.2s; }
     @keyframes tile-glow {
-      0%, 100% { box-shadow: 0 .08em 0 rgba(0,0,0,.35), 0 0 0 rgba(255, 210, 63, 0); transform: scale(1); }
-      50% { box-shadow: 0 .08em 0 rgba(0,0,0,.35), 0 0 .45em rgba(255, 120, 200, .85), 0 0 .9em rgba(24, 200, 255, .5); transform: scale(1.05); }
+      0%, 100% { box-shadow: 0 .08em 0 rgba(0,0,0,.35), 0 0 0 rgba(255, 40, 60, 0); }
+      50% { box-shadow: 0 .08em 0 rgba(0,0,0,.35), 0 0 .5em rgba(255, 40, 60, .95), 0 0 1em rgba(255, 120, 40, .55); }
+    }
+    @keyframes tile-shake {
+      0%   { transform: translate(0, 0) rotate(0deg) scale(1.04); }
+      12%  { transform: translate(-3px, 2px) rotate(-3deg) scale(1.06); }
+      25%  { transform: translate(3px, -2px) rotate(2.5deg) scale(1.04); }
+      37%  { transform: translate(-2px, -3px) rotate(-2deg) scale(1.05); }
+      50%  { transform: translate(2px, 3px) rotate(3deg) scale(1.03); }
+      62%  { transform: translate(-3px, 1px) rotate(-2.5deg) scale(1.05); }
+      75%  { transform: translate(3px, -1px) rotate(2deg) scale(1.04); }
+      87%  { transform: translate(-1px, 2px) rotate(-1.5deg) scale(1.05); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1.04); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .bg-trip::before, .bg-trip::after, .bg-nebula, html.bg-intense .bg-nebula, html.bg-intense .bg-pulse, html.bg-intense .bg-vignette, html.bg-intense .tiles .tile { animation: none !important; }
+      .bg-trip::before, .bg-trip::after, .bg-nebula, html.bg-intense .bg-nebula, html.bg-intense .bg-pulse, html.bg-intense .bg-vignette, html.bg-intense .bg-red, html.bg-intense .tiles .tile { animation: none !important; }
     }
   `;
   document.head.appendChild(css);
@@ -69,6 +93,7 @@
     return el;
   };
   const start = () => {
+    add('bg-red');
     add('bg-vignette');
     const canvas = add('bg-stars', 'canvas');
     add('bg-pulse b');
@@ -129,7 +154,9 @@
         const pulse = intense ? 1 + 0.55 * Math.pow(0.5 + 0.5 * Math.cos((t / BEAT) * Math.PI * 2), 2) : 1;
         const size = (0.4 + near * 2.4) * pulse;
         const alpha = Math.min(1, near * 1.5) * (0.65 + 0.35 * Math.sin(t * 2.5 + s.tw));
-        const col = `hsla(${(s.hue + t * (intense ? 90 : 20)) % 360}, ${intense ? 95 : s.sat}%, ${intense ? 75 : 88}%, ${alpha})`;
+        // Lightning round: stars burn red, orange and gold; otherwise slowly shifting rainbow.
+        const hue = intense ? (350 + ((s.tw * 10 + t * 25) % 55)) % 360 : (s.hue + t * 20) % 360;
+        const col = `hsla(${hue}, ${intense ? 100 : s.sat}%, ${intense ? (s.sat ? 62 : 80) : 88}%, ${alpha})`;
         // streak (longer when warping)
         g.strokeStyle = col;
         g.lineWidth = size;

@@ -250,7 +250,7 @@
         : '<div class="card muted">Nobody answered this round.</div>';
       return `
         <div class="stage">
-          <div class="toprow"><div class="kicker">${roundLabel(s)} · Results</div>${tiles(s.letters, 'sm-tiles')}${timerHtml(90, 8)}</div>
+          <div class="toprow"><div class="kicker">${roundLabel(s)} · Results</div>${tiles(s.letters, 'sm-tiles')}<div class="next-in"><span class="muted">${s.roundIndex + 1 >= s.totalRounds ? 'Lightning round in' : 'Next round in'}</span>${timerHtml(90, 8)}</div></div>
           ${res.noVote && res.rows.length ? '<div class="muted">Not enough answers to vote this round.</div>' : ''}
           <div class="results">
             <div>${rows}

@@ -155,7 +155,7 @@
   css.textContent = `
     #ace { position: fixed; left: 24px; bottom: 18px; display: flex; align-items: flex-end; gap: 12px; z-index: 40; pointer-events: none; max-width: min(540px, 30vw); }
     #ace .bubble { background: #fff; color: #1b1530; border-radius: 22px 22px 22px 6px; padding: 12px 18px; font-size: 21px; font-weight: 600; line-height: 1.3;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .25s, transform .25s; margin-bottom: 70px; }
+      box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .12s, transform .12s; margin-bottom: 70px; }
     #ace.show .bubble { opacity: 1; transform: none; }
     #ace .mascot { flex: none; transition: transform .2s; }
     #ace.talking .mascot { animation: ace-bob .5s ease-in-out infinite; }
@@ -238,7 +238,19 @@
     if (!text || settings.mode === 'off') return;
     // Start generating the AI audio right away so it's ready when it's this line's turn.
     const tts = useAI() ? fetchTTS(text) : null;
-    const item = { text, audio: tts ? tts.promise : null, abort: tts ? tts.abort : null };
+    // As soon as the clip arrives, load it into an audio player so it can start the instant its turn comes.
+    const audio = tts
+      ? tts.promise.then((blob) => {
+          if (!blob) return null;
+          const url = URL.createObjectURL(blob);
+          const el = new Audio();
+          el.preload = 'auto';
+          el.src = url;
+          el.load();
+          return { el, url };
+        })
+      : null;
+    const item = { text, audio, abort: tts ? tts.abort : null };
     if (interrupt) {
       // A new moment in the game: drop what's queued (and stop generating it) and cut off the current line.
       queue.forEach((q) => q.abort && q.abort());
@@ -282,9 +294,18 @@
     if (window.Sound) Sound.duck(true);
     const my = ++token;
     clearTimeout(hideTimer);
-    bubble.textContent = text;
     console.debug('[Ace]', text);
-    root.classList.add('show', 'talking');
+    // The bubble and the voice start together: the caption appears at the moment the sound begins,
+    // never while the voice is still loading.
+    let shown = false;
+    const showLine = () => {
+      if (shown || my !== token) return;
+      shown = true;
+      bubble.textContent = text;
+      root.classList.add('show', 'talking');
+    };
+    // Between lines, hide the old caption so it never sits next to the wrong words.
+    root.classList.remove('show', 'talking');
     // Fallback timing for captions-only mode, or when the browser has no voices.
     const readMs = Math.min(9000, 1200 + text.length * 55);
     const done = () => {
@@ -292,30 +313,33 @@
       clearTimeout(captionTimer);
       next();
     };
+    const captionOnly = () => {
+      clearTimeout(captionTimer);
+      showLine();
+      captionTimer = setTimeout(done, readMs);
+    };
     if (item.audio) {
-      // AI voice. If it fails, fall back to the browser voice (or captions) for this line.
-      captionTimer = setTimeout(done, 30000);
-      item.audio.then((blob) => {
-        if (my !== token) return;
-        if (!blob) {
-          // Keep the show consistent: never switch to the robot voice mid-game. Show the caption instead.
-          clearTimeout(captionTimer);
-          captionTimer = setTimeout(done, readMs);
+      // AI voice. If it fails, show the caption instead (never the robot voice mid-game).
+      captionTimer = setTimeout(captionOnly, 30000);
+      item.audio.then((clip) => {
+        if (my !== token) {
+          if (clip) URL.revokeObjectURL(clip.url);
           return;
         }
-        const url = URL.createObjectURL(blob);
-        const a = new Audio(url);
+        if (!clip) return captionOnly();
+        const a = clip.el;
         currentAudio = a;
         a.volume = 1;
+        a.onplaying = showLine; // fires when sound actually comes out
         a.onended = a.onerror = () => {
-          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(clip.url);
           if (currentAudio === a) currentAudio = null;
+          showLine();
           done();
         };
-        a.play().catch(() => {
-          clearTimeout(captionTimer);
-          captionTimer = setTimeout(done, readMs);
-        });
+        clearTimeout(captionTimer);
+        captionTimer = setTimeout(done, 30000); // safety net if 'ended' never fires
+        a.play().catch(() => captionOnly());
       });
       return;
     }
@@ -325,13 +349,16 @@
       if (v) u.voice = v;
       u.rate = 0.96; // unhurried, booming delivery
       u.pitch = 0.62; // deep
+      u.onstart = showLine;
       u.onend = done;
       u.onerror = done;
+      // Some browsers never fire onstart; show the caption anyway after a moment.
+      setTimeout(showLine, 1500);
       // Some browsers never fire onend; never let the queue get stuck.
       captionTimer = setTimeout(done, readMs + 6000);
       synth.speak(u);
     } else {
-      captionTimer = setTimeout(done, readMs);
+      captionOnly();
     }
   }
 

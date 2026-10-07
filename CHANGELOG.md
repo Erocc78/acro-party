@@ -5,6 +5,7 @@ The version shows in the bottom-right corner of every screen.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| v0.24 | Oct 7, 2026 | Ace's speech bubble now appears at the exact moment his voice starts (no more caption ahead of the audio); clips are preloaded while the previous line plays. Lightning round has red urgency shading (red edges throbbing on the beat, red nebula, swirls and shockwaves, red-orange stars) and the letters shake harder. 35-second break after every voting round before the next round (or the lightning round) starts, with a "Next round in" countdown, leaving room for future ad placements. |
 | v0.23 | Oct 7, 2026 | The lightning-round winner is always the champion and is ranked first in the final standings (even with fewer points); the other finalist is second, everyone else follows by points. Phones show the same placings. Versioning changed to beta numbers (v0.xx) ahead of v1.0. |
 | v0.22 | Oct 7, 2026 | Lightning-round music remixed: brass pulled back about 14 dB; percussion brought forward with a 16th-note shaker, deep tom hits on every bar, rim clicks, tom fills and louder kick and claps. |
 | v0.21 | Oct 7, 2026 | Added the Acro Party theme (your track): the full intro plays when a room opens, then its main section loops in the lobby; answer rounds loop a lighter section of the theme; the lightning round uses a 145 bpm remix made from the theme. Music fades out for the lightning results reveal. Synthesized music is kept for voting, results and the champion screen. |
