@@ -73,7 +73,7 @@
         if (!p || p.phase !== 'bonus_results') Sound.play('champion');
         break;
     }
-    if (s.phase !== 'bonus_results') Sound.music(MUSIC[s.phase] || 'none');
+    Sound.music(MUSIC[s.phase] || 'none'); // the lightning results reveal plays over silence + drumroll
     // Starfield: warp burst when letters appear, faster cruising in the lightning round.
     if (window.Background) {
       const LIGHTNING = ['bonus_intro', 'bonus_reveal', 'bonus_answer', 'bonus_vote', 'bonus_results'];

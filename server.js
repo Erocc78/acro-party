@@ -166,7 +166,7 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 // ---------- HTTP helpers ----------
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg' };
 const ROUTES = { '/': 'index.html', '/host': 'host.html', '/play': 'play.html' };
 
 function sendJson(res, status, obj) {
@@ -197,7 +197,9 @@ function serveStatic(req, res, pathname) {
   if (!file.startsWith(PUBLIC)) return sendJson(res, 404, { error: 'Not found' });
   fs.readFile(file, (err, buf) => {
     if (err) return sendJson(res, 404, { error: 'Not found' });
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    // Music files are big and rarely change, so browsers may keep them for a day; everything else is always fresh.
+    const cache = path.extname(file) === '.mp3' ? 'public, max-age=86400' : 'no-store';
+    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': cache });
     res.end(buf);
   });
 }

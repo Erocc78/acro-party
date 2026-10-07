@@ -71,6 +71,7 @@
   // Browsers start audio only after a click or tap on the page.
   const unlock = () => {
     if (init() && ctx.state !== 'running') ctx.resume();
+    if (ctx && document.getElementById('app') && location.pathname.startsWith('/host')) preloadFiles();
   };
   ['pointerdown', 'keydown', 'touchend'].forEach((e) => window.addEventListener(e, unlock, { capture: true }));
 
@@ -482,9 +483,89 @@
   }
 
   // Switch tracks at the next bar line so the change sounds musical.
-  function music(name) {
-    if (name === mood && !pendingMood) return;
+  // ---------- your recorded music (public/music) ----------
+  // Moods that use a music file instead of the synthesizer. Each file loops seamlessly between
+  // loopStart and loopEnd (seconds). The theme plays its intro once, then loops the main section.
+  const FILES = {
+    lobby: { url: '/music/theme.mp3', start: 0, loopStart: 9.604, loopEnd: 24.964, gain: 0.95 },
+    think: { url: '/music/rounds.mp3', start: 0.5, loopStart: 0.5, loopEnd: 8.18, gain: 0.95 },
+    lightning: { url: '/music/lightning.mp3', start: 0.5, loopStart: 0.5, loopEnd: 13.741, gain: 0.95 },
+  };
+  const buffers = {}; // url -> AudioBuffer | Promise | 'failed'
+  function loadFile(url) {
+    if (buffers[url]) return buffers[url];
+    buffers[url] = fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
+      .then((data) => new Promise((res, rej) => ctx.decodeAudioData(data, res, rej)))
+      .then((buf) => (buffers[url] = buf))
+      .catch((e) => {
+        console.warn('Music file failed to load, using synthesized music instead:', url, e && e.message);
+        buffers[url] = 'failed';
+      });
+    return buffers[url];
+  }
+  function preloadFiles() {
     if (!init()) return;
+    Object.values(FILES).forEach((f) => loadFile(f.url));
+  }
+
+  let track = null; // { name, src, g }
+  let wanted = null; // the mood the game currently asks for
+  function stopTrack(fade = 0.6) {
+    if (!track) return;
+    const { src, g } = track;
+    const t = ctx.currentTime;
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.linearRampToValueAtTime(0.0001, t + fade);
+    try { src.stop(t + fade + 0.05); } catch {}
+    track = null;
+  }
+  function startTrack(name) {
+    const f = FILES[name];
+    const buf = buffers[f.url];
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.loopStart = f.loopStart;
+    src.loopEnd = Math.min(f.loopEnd, buf.duration);
+    const g = ctx.createGain();
+    const t = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(musicPaused ? 0.0001 : f.gain, t + (f.start === 0 ? 0.05 : 0.4));
+    src.connect(g).connect(musicBus);
+    src.start(t + 0.02, f.start);
+    track = { name, src, g, gain: f.gain };
+  }
+
+  // Switch music. Recorded tracks are used where available; otherwise the synthesizer plays.
+  function music(name) {
+    if (!init()) return;
+    wanted = name;
+    const f = FILES[name];
+    if (f) {
+      const buf = buffers[f.url];
+      if (buf && buf !== 'failed' && !(buf instanceof Promise)) {
+        if (track && track.name === name) return;
+        stopTrack();
+        if (seqTimer) stopSequencer(); // cut the synthesizer right away
+        pendingMood = null;
+        startTrack(name);
+        return;
+      }
+      if (buf !== 'failed') {
+        // Not loaded yet: play the synthesizer for now, switch to the file once it arrives.
+        Promise.resolve(loadFile(f.url)).then(() => {
+          if (wanted === name && buffers[f.url] !== 'failed' && !(track && track.name === name)) music(name);
+        });
+      }
+    }
+    stopTrack();
+    synthMusic(name);
+  }
+
+  function synthMusic(name) {
+    if (name === mood && !pendingMood) return;
     if (!seqTimer) {
       if (name === 'none' || !TRACKS[name]) return;
       mood = name;
@@ -500,7 +581,14 @@
     if (toBar > 4) step += toBar % 4;
   }
   function pauseMusic(p) {
+    if (p === musicPaused) return;
     musicPaused = p;
+    if (track && ctx) {
+      const t = ctx.currentTime;
+      track.g.gain.cancelScheduledValues(t);
+      track.g.gain.setValueAtTime(track.g.gain.value, t);
+      track.g.gain.linearRampToValueAtTime(p ? 0.0001 : track.gain, t + 0.3);
+    }
   }
   function duck(on) {
     if (!ctx) return;
@@ -624,5 +712,6 @@
     apply();
   }
 
-  window.Sound = { music, pauseMusic, duck, play, set, settings, isRunning: () => !!ctx && ctx.state === 'running', unlock };
+  window.Sound = { music, pauseMusic, duck, play, set, settings, isRunning: () => !!ctx && ctx.state === 'running', unlock, preloadFiles,
+    nowPlaying: () => (track ? 'file:' + track.name : mood ? 'synth:' + mood : 'none') };
 })();
