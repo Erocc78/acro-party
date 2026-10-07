@@ -24,7 +24,8 @@
     round: { any: ['Round {n}! {count} letters. {spelled}!', 'Here comes round {n}. Your letters are... {spelled}!', 'Round {n}, {count} letters: {spelled}. Make it count!'] },
     backToShort: { any: ['Round {n}! We go back to {count} letters. {spelled}!'] },
     lastRound: { any: ['Final round before the lightning round! {count} letters. {spelled}!', 'This is it, the last regular round! {spelled}!'] },
-    go: { any: ['{secs} seconds. Go!', 'Clock is running. Go!', "{secs} seconds on the clock. Let's go!"] },
+    go: { any: ['Go!', 'And... go!', 'Clock is running. Go!', "Let's go!"] },
+    timeLimit: { any: ["You've got {secs} seconds.", '{secs} seconds on the clock.', 'You have {secs} seconds.'] },
     tenLeft: { any: ['Ten seconds!', 'Ten seconds left!', 'Hurry, ten seconds!', 'Tick tock, ten seconds!'] },
     vote: {
       kid: ["Pencils down! Time to vote. Pick your favorite, but not your own!", "Let's see what you came up with! Vote for the best one."],
@@ -42,7 +43,7 @@
       kid: ["It's time for... the lightning round! {a} versus {b}! Three acronyms, {secs} seconds each. Everyone else, you're the judges!"],
       adult: ["Ladies and gentlemen, it's time for the lightning round! {a} versus {b}! Three acronyms, {secs} seconds each. Everyone else, you're the judges."],
     },
-    lightning: { any: ['Lightning {n}: {spelled}!', 'Lightning round {n}. {spelled}. Go!'] },
+    lightning: { any: ['Lightning {n}: {spelled}!', 'Lightning round {n}. Your letters: {spelled}!'] },
     fiveLeft: { any: ['Five seconds!', 'Five!'] },
     lightningVote: { any: ['Judges, it\'s in your hands. Pick A or B for all three!', 'All entries are in. Judges, vote now!'] },
     pairWin: { any: ['Round {n} goes to {name}!', '{name} takes round {n}!'] },
@@ -243,10 +244,20 @@
     if (!speaking) next();
   }
 
+  // Calls cb once Ace has nothing left to say (right away if he's quiet or turned off).
+  let quietCbs = [];
+  function whenQuiet(cb) {
+    if (settings.mode === 'off' || (!speaking && !queue.length)) return cb();
+    quietCbs.push(cb);
+  }
+
   function next() {
     const item = queue.shift();
     const text = item && item.text;
     if (!item) {
+      const cbs = quietCbs;
+      quietCbs = [];
+      setTimeout(() => cbs.forEach((f) => f()), 0);
       speaking = false;
       if (window.Sound) Sound.duck(false);
       root.classList.remove('talking');
@@ -385,9 +396,12 @@
         if (s.roundIndex === 0) key = 'firstRound';
         else if (n === s.totalRounds) key = 'lastRound';
         else if (s.roundIndex === 5) key = 'backToShort';
-        say(line(key, mode, vars), { interrupt: true });
+        say(line(key, mode, vars) + ' ' + line('timeLimit', mode, { secs: s.answerSecs }), { interrupt: true });
         break;
       }
+      case 'bonus_answer':
+        say(line('go', mode));
+        break;
       case 'answer':
         say(line('go', mode, { secs: s.answerSecs }));
         break;
@@ -418,7 +432,7 @@
         break;
       }
       case 'bonus_reveal':
-        say(line('lightning', mode, { n: s.bonus.index + 1, spelled: spell(s.letters) }), { interrupt: true });
+        say(line('lightning', mode, { n: s.bonus.index + 1, spelled: spell(s.letters) }) + ' ' + line('timeLimit', mode, { secs: s.lightningSecs }), { interrupt: true });
         break;
       case 'bonus_vote':
         say(line('lightningVote', mode), { interrupt: true });
@@ -510,5 +524,5 @@
   }
 
   applyMode();
-  window.Announcer = { onState, say, settingsHtml, wireSettings };
+  window.Announcer = { onState, say, settingsHtml, wireSettings, whenQuiet };
 })();

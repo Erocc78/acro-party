@@ -92,6 +92,16 @@
     if (window.Soundtrack) Soundtrack.onState(s);
     if (window.Announcer) Announcer.onState(s);
     const key = [s.phase, s.roundIndex, s.bonus ? s.bonus.index : ''].join('|');
+    // Reveal moments wait for Ace: once he has finished talking (and the letters have
+    // finished dropping in), tell the server it can start the clock.
+    if (key !== renderedKey && s.awaitingAnnouncer && ['reveal', 'bonus_intro', 'bonus_reveal'].includes(s.phase)) {
+      const shownAt = Date.now();
+      const minMs = s.letters ? s.letters.length * 250 + 900 : 1500;
+      const report = () => { host('announced', { phase: s.phase, roundIndex: s.roundIndex, bonusIndex: s.bonus ? s.bonus.index : null }); };
+      const afterQuiet = () => setTimeout(report, Math.max(0, minMs - (Date.now() - shownAt)) + 300);
+      if (window.Announcer) Announcer.whenQuiet(afterQuiet);
+      else afterQuiet();
+    }
     if (key !== renderedKey) {
       renderedKey = key;
       render(s);

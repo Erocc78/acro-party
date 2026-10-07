@@ -225,6 +225,7 @@ async function api(req, res, pathname) {
       case 'kick': room.remove(body.playerId); break;
       case 'settings': out = room.updateSettings(body); break;
       case 'playAgain': room.playAgain(); break;
+      case 'announced': room.announced(body); break;
       default: out = { error: 'Unknown action.' };
     }
     return sendJson(res, out.error ? 400 : 200, out);
