@@ -180,34 +180,73 @@
   let hideTimer = null;
   let captionTimer = null;
 
+  // ---------- AI voice (ElevenLabs, through our own server so the key stays secret) ----------
+  let aiAvailable = false;
+  fetch('/api/tts/status').then((r) => r.json()).then((j) => {
+    aiAvailable = !!j.enabled;
+    // First time the AI voice is available, switch to it (the host can still change it).
+    if (aiAvailable && !settings.aiOffered) {
+      settings.aiOffered = true;
+      if (settings.mode === 'voice') settings.mode = 'ai';
+      save();
+    }
+    const seg = document.getElementById('segAce');
+    if (seg) wireSettings();
+  }).catch(() => {});
+  const useAI = () => settings.mode === 'ai' && aiAvailable;
+
+  function fetchTTS(text) {
+    const session = Acro.store.get('acro-host') || {};
+    return fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: session.code, hostToken: session.hostToken, text }),
+    })
+      .then((r) => (r.ok ? r.blob() : null))
+      .catch(() => null);
+  }
+  let currentAudio = null;
+  function stopAudio() {
+    if (currentAudio) {
+      currentAudio.onended = currentAudio.onerror = null;
+      currentAudio.pause();
+      currentAudio = null;
+    }
+  }
+
   function applyMode() {
     root.classList.toggle('off', settings.mode === 'off');
     if (settings.mode !== 'voice' && synth) synth.cancel();
+    if (settings.mode !== 'ai') stopAudio();
   }
 
   let token = 0;
 
   function say(text, { interrupt = false } = {}) {
     if (!text || settings.mode === 'off') return;
+    // Start generating the AI audio right away so it's ready when it's this line's turn.
+    const item = { text, audio: useAI() ? fetchTTS(text) : null };
     if (interrupt) {
       // A new moment in the game: drop what's queued and cut off the current line.
-      queue = [text];
+      queue = [item];
       if (speaking) {
         token++;
         clearTimeout(captionTimer);
         if (synth) synth.cancel();
+        stopAudio();
         speaking = false;
       }
     } else {
       if (queue.length >= 4) return; // don't let chatter pile up
-      queue.push(text);
+      queue.push(item);
     }
     if (!speaking) next();
   }
 
   function next() {
-    const text = queue.shift();
-    if (!text) {
+    const item = queue.shift();
+    const text = item && item.text;
+    if (!item) {
       speaking = false;
       if (window.Sound) Sound.duck(false);
       root.classList.remove('talking');
@@ -229,6 +268,44 @@
       clearTimeout(captionTimer);
       next();
     };
+    const speakBrowser = () => {
+      const u = new SpeechSynthesisUtterance(text);
+      const v = chooseVoice();
+      if (v) u.voice = v;
+      u.rate = 0.96;
+      u.pitch = 0.62;
+      u.onend = done;
+      u.onerror = done;
+      captionTimer = setTimeout(done, readMs + 6000);
+      synth.speak(u);
+    };
+    if (item.audio) {
+      // AI voice. If it fails, fall back to the browser voice (or captions) for this line.
+      captionTimer = setTimeout(done, 20000);
+      item.audio.then((blob) => {
+        if (my !== token) return;
+        if (!blob) {
+          clearTimeout(captionTimer);
+          if (synth && voices().length) speakBrowser();
+          else captionTimer = setTimeout(done, readMs);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = new Audio(url);
+        currentAudio = a;
+        a.volume = 1;
+        a.onended = a.onerror = () => {
+          URL.revokeObjectURL(url);
+          if (currentAudio === a) currentAudio = null;
+          done();
+        };
+        a.play().catch(() => {
+          clearTimeout(captionTimer);
+          captionTimer = setTimeout(done, readMs);
+        });
+      });
+      return;
+    }
     if (settings.mode === 'voice' && synth && voices().length) {
       const u = new SpeechSynthesisUtterance(text);
       const v = chooseVoice();
@@ -389,17 +466,25 @@
   // ---------- lobby settings control ----------
   function settingsHtml() {
     return `<div class="setting"><span>Announcer</span><div class="seg" id="segAce">
-        <button data-v="voice">🔊 Voice</button><button data-v="captions">💬 Captions</button><button data-v="off">Off</button></div></div>
+        ${aiAvailable ? '<button data-v="ai">🎙️ AI voice</button>' : ''}<button data-v="voice">🔊 Browser voice</button><button data-v="captions">💬 Captions</button><button data-v="off">Off</button></div></div>
       <div class="setting" id="aceVoiceRow"><span>Voice</span><select id="aceVoice" class="field" style="min-height:44px;padding:6px 10px;font-size:17px;width:auto;max-width:320px"></select>
         <button class="btn ghost" id="aceTest">Test</button></div>`;
   }
 
   function wireSettings() {
-    const seg = document.getElementById('segAce');
+    let seg = document.getElementById('segAce');
     if (!seg) return;
+    // Re-draw the buttons (the AI option appears once the server says it's set up).
+    const row = seg.closest('.setting');
+    const holder = document.createElement('div');
+    holder.innerHTML = settingsHtml();
+    row.replaceWith(holder.firstElementChild);
+    document.getElementById('aceVoiceRow').replaceWith(holder.lastElementChild);
+    seg = document.getElementById('segAce');
     const sync = () => {
       seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === settings.mode));
-      document.getElementById('aceVoiceRow').classList.toggle('hidden', settings.mode !== 'voice' || !voices().length);
+      document.getElementById('aceVoiceRow').classList.toggle('hidden', !((settings.mode === 'voice' && voices().length) || settings.mode === 'ai'));
+      document.getElementById('aceVoice').classList.toggle('hidden', settings.mode === 'ai');
     };
     seg.querySelectorAll('button').forEach((b) => (b.onclick = () => {
       settings.mode = b.dataset.v;

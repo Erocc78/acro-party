@@ -146,6 +146,7 @@
     if (key !== renderedKey) {
       renderedKey = key;
       if (window.Background && (s.phase === 'reveal' || s.phase === 'bonus_reveal')) Background.burst();
+      if (window.Background) Background.setMode(['bonus_intro', 'bonus_reveal', 'bonus_answer', 'bonus_vote', 'bonus_results'].includes(s.phase) ? 'lightning' : 'normal');
       app.innerHTML = waiting ? waitingScreen(s) : (screens[s.phase] || (() => ''))(s);
       wire(s);
     }

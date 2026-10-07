@@ -12,6 +12,71 @@ const PUBLIC = path.join(__dirname, 'public');
 const ROOM_IDLE_MS = 30 * 60 * 1000;
 const CODE_LETTERS = 'BCDFGHJKLMNPQRSTVWXZ'; // 20 consonants, no vowels, no Y
 
+// ---------- AI announcer voice (ElevenLabs) ----------
+// Set ELEVENLABS_API_KEY in your host's environment settings to turn it on.
+// The key stays on the server; browsers only ever receive the finished audio.
+const TTS = {
+  key: process.env.ELEVENLABS_API_KEY || '',
+  voice: process.env.ELEVENLABS_VOICE_ID || 'nPczCjzI2devNBz1zQrb', // "Brian": deep American narrator
+  model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2', // most lifelike; 'eleven_flash_v2_5' is cheaper and faster
+  base: process.env.ELEVENLABS_BASE_URL || 'https://api.elevenlabs.io',
+  // Safety cap so a stuck screen can't run up a bill: characters per day sent to ElevenLabs.
+  dailyLimit: Number(process.env.ELEVENLABS_DAILY_CHAR_LIMIT || 40000),
+};
+const ttsCache = new Map(); // text -> mp3 (repeated lines are only paid for once)
+let ttsCacheBytes = 0;
+let ttsDay = '';
+let ttsUsed = 0;
+const ttsInflight = new Map();
+
+async function ttsAudio(text) {
+  const id = crypto.createHash('sha1').update(`${TTS.voice}|${TTS.model}|${text}`).digest('hex');
+  if (ttsCache.has(id)) {
+    const buf = ttsCache.get(id);
+    ttsCache.delete(id);
+    ttsCache.set(id, buf); // keep recently used lines
+    return { buf };
+  }
+  if (ttsInflight.has(id)) return ttsInflight.get(id);
+  const job = (async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today !== ttsDay) {
+      ttsDay = today;
+      ttsUsed = 0;
+    }
+    if (ttsUsed + text.length > TTS.dailyLimit) return { status: 429, error: 'Daily AI voice limit reached.' };
+    const r = await fetch(`${TTS.base}/v1/text-to-speech/${encodeURIComponent(TTS.voice)}?output_format=mp3_44100_128`, {
+      method: 'POST',
+      headers: { 'xi-api-key': TTS.key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+      body: JSON.stringify({
+        text,
+        model_id: TTS.model,
+        voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true },
+      }),
+    });
+    if (!r.ok) {
+      const msg = await r.text().catch(() => '');
+      console.error(`ElevenLabs error ${r.status}: ${msg.slice(0, 300)}`);
+      return { status: 502, error: `AI voice service error (${r.status}).` };
+    }
+    const buf = Buffer.from(await r.arrayBuffer());
+    ttsUsed += text.length;
+    ttsCache.set(id, buf);
+    ttsCacheBytes += buf.length;
+    while (ttsCacheBytes > 40e6) {
+      const [k, v] = ttsCache.entries().next().value;
+      ttsCache.delete(k);
+      ttsCacheBytes -= v.length;
+    }
+    return { buf };
+  })().catch((e) => {
+    console.error('ElevenLabs request failed:', e.message);
+    return { status: 502, error: 'AI voice service unreachable.' };
+  }).finally(() => ttsInflight.delete(id));
+  ttsInflight.set(id, job);
+  return job;
+}
+
 const rooms = new Map(); // code -> { room, streams: Set<{res, role, playerId}> }
 
 function lanAddress() {
@@ -113,6 +178,10 @@ async function api(req, res, pathname) {
     return sendJson(res, 200, { lanUrl: `http://${lanAddress()}:${PORT}` });
   }
 
+  if (pathname === '/api/tts/status') {
+    return sendJson(res, 200, { enabled: !!TTS.key });
+  }
+
   if (pathname === '/api/create') {
     const room = createRoom(body.mode);
     return sendJson(res, 200, { code: room.code, hostToken: room.hostToken });
@@ -120,6 +189,19 @@ async function api(req, res, pathname) {
 
   const room = getRoom(body.code);
   if (!room) return sendJson(res, 404, { error: "We couldn't find that room. Check the code on the TV." });
+
+  if (pathname === '/api/tts') {
+    // Only the host screen of a live room may use the voice (protects your ElevenLabs credits).
+    if (!TTS.key) return sendJson(res, 503, { error: 'AI voice is not set up.' });
+    if (body.hostToken !== room.hostToken) return sendJson(res, 403, { error: 'Not the host.' });
+    const text = String(body.text || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+    if (!text) return sendJson(res, 400, { error: 'No text.' });
+    room.touch();
+    const out = await ttsAudio(text);
+    if (!out.buf) return sendJson(res, out.status || 502, { error: out.error });
+    res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': out.buf.length, 'Cache-Control': 'no-store' });
+    return res.end(out.buf);
+  }
 
   if (pathname === '/api/peek') {
     return sendJson(res, 200, { code: room.code, mode: room.mode, phase: room.phase });
@@ -244,4 +326,5 @@ server.listen(PORT, () => {
   console.log('\n  Acro Party is running!\n');
   console.log(`  TV / host screen:  http://localhost:${PORT}/host`);
   console.log(`  Phones join at:    ${lan}/play   (same Wi-Fi network)\n`);
+  console.log(TTS.key ? `  AI announcer voice: ON (ElevenLabs voice ${TTS.voice}, model ${TTS.model})\n` : '  AI announcer voice: off (set ELEVENLABS_API_KEY to turn it on)\n');
 });
