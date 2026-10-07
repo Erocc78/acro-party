@@ -250,8 +250,8 @@
       return `
         <div class="middle">
           <div class="bigicon">${c && c.isMe ? '🏆' : c ? c.avatar : '🎉'}</div>
-          <h1>${c ? (c.isMe ? 'You won!' : `${esc(c.name)} wins!`) : 'Game over'}</h1>
-          <p class="muted">You finished #${s.me.rank} of ${s.me.of} with ${s.me.score} points.</p>
+          <h1>${c ? (c.isMe ? 'You won the lightning round!' : `${esc(c.name)} is the champion!`) : 'Game over'}</h1>
+          <p class="muted">${c && c.isMe ? 'You are the Acro Party champion.' : `You finished #${s.me.rank} of ${s.me.of}.`} You scored ${s.me.score} points.</p>
         </div>
         <p class="note center">Waiting for the host to start another game…</p>`;
     },

@@ -168,7 +168,7 @@
     return `<div class="card board">${players
       .map(
         (p, i) => `<div class="line"><span class="rank">${i + 1}</span><span class="avatar">${p.avatar}</span>
-        <span class="nm">${esc(p.name)}</span>${showDelta && p.delta ? `<span class="delta">+${p.delta}</span>` : ''}<span class="pts">${p.score}</span></div>`
+        <span class="nm">${esc(p.name)}${p.tag === 'champion' ? ' <span class="badge win">🏆 Champion</span>' : p.tag === 'finalist' ? ' <span class="badge speed">⚡ Lightning finalist</span>' : ''}</span>${showDelta && p.delta ? `<span class="delta">+${p.delta}</span>` : ''}<span class="pts">${p.score}</span></div>`
       )
       .join('')}</div>`;
   }
@@ -329,7 +329,8 @@
         <div class="stage">
           ${c ? `<div class="champ"><div class="kicker">🏆 Champion</div><div class="avatar">${c.avatar}</div><div class="title">${esc(c.name)}</div>
             ${c.forfeit ? '<div class="muted">Won by forfeit</div>' : ''}${c.noBonus ? '<div class="muted">Not enough players left for a lightning round</div>' : ''}</div>` : ''}
-          <div style="width:min(640px,100%);text-align:left"><h2>Final scores</h2>${scoreboard(s.players, false)}</div>
+          <div style="width:min(720px,100%);text-align:left"><h2>Final standings</h2>
+            <p class="muted" style="margin:-4px 0 12px;font-size:18px">The lightning round decides the champion. Points decide the other places.</p>${scoreboard(s.players, false)}</div>
           <div class="actions"><button class="btn" id="againBtn">Play again</button></div>
           <div class="err" id="flash"></div>
         </div>`;
