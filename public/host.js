@@ -46,12 +46,12 @@
         <button class="card mode" data-mode="kid">
           <b>🧸 Kid-friendly</b>
           <span class="muted">Family game night</span>
-          <ul><li>Naughty word filter always on</li><li>No rude letter combos</li><li>Starts with the longer kids' timer (45 s)</li></ul>
+          <ul><li>Naughty word filter always on</li><li>No rude letter combos</li><li>+10 s kids' extra time every round</li></ul>
         </button>
         <button class="card mode" data-mode="adult">
           <b>🍸 Adult</b>
           <span class="muted">18+ only</span>
-          <ul><li>No word filter</li><li>Players confirm they're 18 or older</li><li>30 s to answer</li></ul>
+          <ul><li>No word filter</li><li>Players confirm they're 18 or older</li><li>20 to 40 s to answer, by number of letters</li></ul>
         </button>
       </div>
       <p class="err center" id="modeErr"></p>`;

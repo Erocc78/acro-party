@@ -74,6 +74,12 @@
         break;
     }
     if (s.phase !== 'bonus_results') Sound.music(MUSIC[s.phase] || 'none');
+    // Starfield: warp burst when letters appear, faster cruising in the lightning round.
+    if (window.Background) {
+      const SPEED = { bonus_intro: 3.5, bonus_reveal: 3, bonus_answer: 3, bonus_vote: 2, bonus_results: 1.5, gameover: 2 };
+      Background.setSpeed(SPEED[s.phase] || 1);
+      if (['reveal', 'bonus_reveal', 'bonus_intro', 'gameover'].includes(s.phase)) Background.burst();
+    }
   }
 
   // Soft ticker: one tick per second while a timer runs, brighter for the last 5 seconds.

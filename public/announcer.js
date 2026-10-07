@@ -70,18 +70,32 @@
   function voices() {
     return synth ? synth.getVoices().filter((v) => /^en/i.test(v.lang)) : [];
   }
+  // Ace has a deep game-show voice: prefer male voices, then lower the pitch.
+  const MALE = [
+    /Microsoft (Guy|Davis|Andrew|Christopher|Eric|Brian|Roger|Steffan|Tony|Jason|Ryan|Thomas|George|William)/i,
+    /Google UK English Male/i,
+    /\b(Daniel|Aaron|Arthur|Fred|Alex|Ralph|Albert|Reed|Eddy|Oliver|Thomas|Gordon|Lee|Rishi|Junior|Grandpa|Rocko)\b/i,
+    /\bmale\b/i,
+  ];
+  const FEMALE = /female|Samantha|Zira|Aria|Jenny|Susan|Hazel|Karen|Moira|Tessa|Victoria|Allison|Ava|Kate|Serena|Fiona|Emma|Michelle|Sonia|Libby|Martha|Nicky|Catherine|Google US English$/i;
+  const isMale = (v) => !FEMALE.test(v.name) && MALE.some((p) => p.test(v.name));
+  // One-time reset so earlier saved voice choices don't override the new deep voice.
+  if (!settings.deepVoice) {
+    settings.voice = '';
+    settings.deepVoice = true;
+    try { Acro.store.set(KEY, settings); } catch {}
+  }
   function chooseVoice() {
     const list = voices();
     if (settings.voice) {
       const v = list.find((x) => x.name === settings.voice);
       if (v) return v;
     }
-    const prefs = [/Google US English/i, /Daniel/i, /Alex/i, /Aaron/i, /Guy/i, /Microsoft (Guy|Davis|Andrew|Mark)/i, /Fred/i, /en-US/i];
-    for (const p of prefs) {
-      const v = list.find((x) => p.test(x.name) || p.test(x.lang));
+    for (const p of MALE) {
+      const v = list.find((x) => !FEMALE.test(x.name) && p.test(x.name));
       if (v) return v;
     }
-    return list[0] || null;
+    return list.find((x) => !FEMALE.test(x.name)) || list[0] || null;
   }
 
   // ---------- UI: mascot + speech bubble ----------
@@ -219,8 +233,8 @@
       const u = new SpeechSynthesisUtterance(text);
       const v = chooseVoice();
       if (v) u.voice = v;
-      u.rate = 1.07;
-      u.pitch = 1.1;
+      u.rate = 0.96; // unhurried, booming delivery
+      u.pitch = 0.62; // deep
       u.onend = done;
       u.onerror = done;
       // Some browsers never fire onend; never let the queue get stuck.
@@ -397,7 +411,8 @@
     const sel = document.getElementById('aceVoice');
     const fillVoices = () => {
       const current = chooseVoice();
-      sel.innerHTML = voices().map((v) => `<option ${current && v.name === current.name ? 'selected' : ''}>${Acro.esc(v.name)}</option>`).join('');
+      const sorted = voices().slice().sort((a, b) => isMale(b) - isMale(a));
+      sel.innerHTML = sorted.map((v) => `<option value="${Acro.esc(v.name)}" ${current && v.name === current.name ? 'selected' : ''}>${Acro.esc(v.name)}${isMale(v) ? ' (deep)' : ''}</option>`).join('');
       sync();
     };
     sel.onchange = () => {

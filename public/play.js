@@ -145,6 +145,7 @@
     const key = [s.phase, s.roundIndex, s.bonus ? s.bonus.index : '', waiting, role].join('|');
     if (key !== renderedKey) {
       renderedKey = key;
+      if (window.Background && (s.phase === 'reveal' || s.phase === 'bonus_reveal')) Background.burst();
       app.innerHTML = waiting ? waitingScreen(s) : (screens[s.phase] || (() => ''))(s);
       wire(s);
     }

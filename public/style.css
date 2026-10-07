@@ -1,7 +1,7 @@
 :root {
   --bg: #14122b;
   --bg-2: #1e1b3d;
-  --card: #262252;
+  --card: rgba(38, 34, 82, 0.8);
   --card-2: #312c66;
   --line: #3f3a7a;
   --text: #f6f4ff;
@@ -53,7 +53,7 @@ button { cursor: pointer; border: 0; }
 .badge.speed { background: var(--teal); color: #08302a; }
 .badge.warn { background: #5a3a1a; color: #ffd9a8; }
 
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 
 .tiles { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .tile {
