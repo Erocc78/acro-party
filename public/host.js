@@ -92,7 +92,7 @@
     if (window.Soundtrack) Soundtrack.onState(s);
     if (window.Announcer) Announcer.onState(s);
     const key = [s.phase, s.roundIndex, s.bonus ? s.bonus.index : ''].join('|');
-    // Reveal moments wait for Ace: once he has finished talking (and the letters have
+    // Reveal moments wait for Gene: once he has finished talking (and the letters have
     // finished dropping in), tell the server it can start the clock.
     if (key !== renderedKey && s.awaitingAnnouncer && ['reveal', 'bonus_intro', 'bonus_reveal'].includes(s.phase)) {
       const shownAt = Date.now();

@@ -490,6 +490,8 @@
     lobby: { url: '/music/theme.mp3', start: 0, loopStart: 9.604, loopEnd: 24.964, gain: 0.95 },
     think: { url: '/music/rounds.mp3', start: 0.5, loopStart: 0.5, loopEnd: 8.18, gain: 0.95 },
     lightning: { url: '/music/lightning.mp3', start: 0.5, loopStart: 0.5, loopEnd: 13.741, gain: 0.95 },
+    // Final standings: the theme again, from the top (intro, then the main section loops), to bookend the show.
+    victory: { url: '/music/theme.mp3', start: 0, loopStart: 9.604, loopEnd: 24.964, gain: 0.95 },
   };
   const buffers = {}; // url -> AudioBuffer | Promise | 'failed'
   function loadFile(url) {
