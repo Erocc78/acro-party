@@ -56,7 +56,8 @@
           <ul><li>No word filter</li><li>Players confirm they're 18 or older</li><li>20 to 40 s to answer, by number of letters</li></ul>
         </button>
       </div>
-      <p class="err center" id="modeErr"></p>`;
+      <p class="err center" id="modeErr"></p>
+      <div class="center"><a class="btn ghost how-btn" href="/how-to-play">📖 How to play</a></div>`;
     app.querySelectorAll('[data-mode]').forEach((b) =>
       b.addEventListener('click', async () => {
         let j;

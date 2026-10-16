@@ -134,6 +134,8 @@ How it protects your credits: the key stays on the server, only the TV screen of
 
 ## What's in the prototype
 
+- **How to Play page** at `/how-to-play`, opened from the 📖 How to play button on the game-mode screen: a step-by-step tutorial with real screenshots of the TV and phones (joining, random letters, voting, scoring and bonus points, the Lightning Round and the champion). It's a normal page in the game, not a pop-up; Back to the game returns to the start screen.
+
 - Kid-friendly or Adult mode, chosen first. Kid mode turns on the naughty word filter for answers and nicknames (a naughty answer flashes "Naughty!" on the phone, then just that word is deleted so the player can type a new one), skips rude letter sets, and starts with +10 seconds of kids' extra time. Adult mode asks every player to confirm they're 18 or older.
 - 5 to 8 rounds, set in the lobby (Kid-friendly games also show the Kids' extra time setting). Letters go 3, 4, 5, 6, 7, then back to 3, 4, 5.
 - **The clock waits for Gene.** Each round's letters are revealed while Gene announces them; the answer clock starts and entries open only after he finishes talking ("Go!"). The lightning-round intro and each lightning reveal wait for him too. If the TV disconnects, the game moves on after 25 seconds at most.
@@ -167,6 +169,7 @@ How it protects your credits: the key stays on the server, only the TV screen of
 | `public/sound.js` | Music player and synthesizer: theme files, synthesized tracks, sound effects and the ticker |
 | `public/soundtrack.js` | Decides which music and effects play at each moment of the game |
 | `public/play.html`, `public/play.js` | Phone screen |
+| `public/how.html`, `public/how/` | The How to Play page (`/how-to-play`) and its screenshots |
 | `public/shared/rules.js` | Answer checking, shared by phones and server |
 | `public/shared/qr.js` | Makes the join QR code on the computer (no internet needed) |
 | `desktop/launcher.js` | Desktop app start-up: settings file, opens the TV screen, shows the phone address |

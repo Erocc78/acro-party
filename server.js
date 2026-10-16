@@ -210,8 +210,8 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 // ---------- HTTP helpers ----------
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg' };
-const ROUTES = { '/': 'index.html', '/host': 'host.html', '/play': 'play.html' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg' };
+const ROUTES = { '/': 'index.html', '/host': 'host.html', '/play': 'play.html', '/how-to-play': 'how.html' };
 
 function sendJson(res, status, obj) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -249,8 +249,8 @@ function serveStatic(req, res, pathname) {
     : fs.readFile;
   read(file, (err, buf) => {
     if (err) return sendJson(res, 404, { error: 'Not found' });
-    // Music files are big and rarely change, so browsers may keep them for a day; everything else is always fresh.
-    const cache = path.extname(file) === '.mp3' ? 'public, max-age=86400' : 'no-store';
+    // Music and tutorial pictures are big and rarely change, so browsers may keep them for a day; everything else is always fresh.
+    const cache = ['.mp3', '.jpg'].includes(path.extname(file)) ? 'public, max-age=86400' : 'no-store';
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': cache });
     res.end(buf);
   });
