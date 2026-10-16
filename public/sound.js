@@ -8,6 +8,7 @@
   const save = () => Acro.store.set(KEY, settings);
 
   const LEVEL = 1.7; // overall loudness
+  const LITE = !!(window.Acro && Acro.lite); // TV performance mode (see common.js)
   let ctx = null;
   let master, musicBus, leadBus, bassBus, sfxBus, tickBus, duckGain, noiseBuf, reverb;
 
@@ -37,6 +38,12 @@
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
 
+    // TV performance mode: skip the reverb (a convolver is heavy for TV chips).
+    if (LITE) {
+      reverb = ctx.createGain();
+      reverb.gain.value = 0;
+      reverb.connect(master);
+    } else {
     // Studio reverb: a short decaying noise impulse.
     reverb = ctx.createConvolver();
     const len = Math.floor(ctx.sampleRate * 1.8);
@@ -48,6 +55,7 @@
     reverb.buffer = ir;
     const wet = gain(0.32, master);
     reverb.connect(wet);
+    }
 
     duckGain = gain(1, master);
     musicBus = gain(settings.music * 0.55, duckGain);
@@ -543,6 +551,8 @@
   // Switch music. Recorded tracks are used where available; otherwise the synthesizer plays.
   function music(name) {
     if (!init()) return;
+    // TV performance mode: play recorded music only (the live synthesizer band is too heavy for TV chips).
+    if (LITE && name !== 'none' && !FILES[name]) name = name === 'vote' ? 'think' : 'lobby';
     wanted = name;
     const f = FILES[name];
     if (f) {

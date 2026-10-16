@@ -7,6 +7,7 @@
   let renderedKey = null;
   let disconnect = null;
   let joinBase = location.origin;
+  let joinOthers = [];
 
   Acro.startTicker(() => state);
 
@@ -14,6 +15,7 @@
   if (['localhost', '127.0.0.1'].includes(location.hostname)) {
     fetch('/api/info').then((r) => r.json()).then((j) => {
       joinBase = j.lanUrl;
+      joinOthers = j.others || [];
       if (state && state.phase === 'lobby') drawJoin(state);
     }).catch(() => {});
   }
@@ -85,6 +87,7 @@
 
   function onState(s) {
     state = s;
+    document.documentElement.classList.toggle('in-lobby', s.phase === 'lobby');
     drawPaused(s);
     document.getElementById('modeBadge').innerHTML = s.mode === 'kid' ? '<span class="badge kid">🧸 Kid-friendly</span>' : '<span class="badge adult">🍸 Adult · 18+</span>';
     document.getElementById('roomcode').innerHTML = s.phase === 'lobby' ? '' : `Room <b>${s.code}</b>`;
@@ -186,10 +189,13 @@
       <div class="lobby">
         <div class="card join">
           <div class="kicker">Join on your phone</div>
+          <div class="muted" style="margin-top:-8px">Scan the code, or go to</div>
           <div id="joinUrl" class="url"></div>
-          <div class="muted">Room code</div>
-          ${tiles(s.code.split(''), 'code-tiles')}
-          <div id="qr"></div>
+          <div class="join-row">
+            <div id="qr"></div>
+            <div class="code-side"><div class="muted">Room code</div>${tiles(s.code.split(''), 'code-tiles')}</div>
+          </div>
+          <div class="muted join-help" id="joinHelp"></div>
           ${s.mode === 'adult' ? '<span class="badge adult">Adult game: 18+ only</span>' : ''}
         </div>
         <div>
@@ -197,9 +203,9 @@
           <div class="players" id="players"></div>
           <div class="card settings">
             <div class="setting"><span>Rounds</span><div class="seg" id="segRounds">${[5, 6, 7, 8].map((n) => `<button data-v="${n}">${n}</button>`).join('')}</div></div>
-            <div class="setting"><span>Kids' extra time</span><div class="seg" id="segTime">${[[0, 'Off'], [10, '+10 s'], [20, '+20 s']].map(([v, t]) => `<button data-v="${v}">${t}</button>`).join('')}</div></div>
-            <div class="muted" id="timeNote" style="font-size:17px"></div>
-            <details class="more"><summary>🔊 Sound and announcer</summary><div class="settings" style="margin-top:14px">
+            ${s.mode === 'kid' ? `<div class="setting"><span>Kids' extra time</span><div class="seg" id="segTime">${[[0, 'Off'], [10, '+10 s'], [20, '+20 s']].map(([v, t]) => `<button data-v="${v}">${t}</button>`).join('')}</div></div>` : ''}
+            <details class="more"><summary>🔊 Sound, announcer and display</summary><div class="settings" style="margin-top:14px">
+            <div class="setting"><span>Display</span><div class="seg" id="segLite"><button data-v="0">✨ Full effects</button><button data-v="1">📺 TV mode (smoother)</button></div></div>
             ${window.Announcer ? Announcer.settingsHtml() : ''}
             ${window.Soundtrack ? Soundtrack.settingsHtml() : ''}
             </div></details>
@@ -251,7 +257,7 @@
       return `
         <div class="stage">
           <div class="toprow"><div class="kicker">${roundLabel(s)} · Results</div>${tiles(s.letters, 'sm-tiles')}<div class="next-in"><span class="muted">${s.roundIndex + 1 >= s.totalRounds ? 'Lightning round in' : 'Next round in'}</span>${timerHtml(90, 8)}</div></div>
-          ${res.noVote && res.rows.length ? '<div class="muted">Not enough answers to vote this round.</div>' : ''}
+          ${res.solo ? '<div class="muted">Only one answer came in, so it wins the round!</div>' : res.noVote && res.rows.length ? '<div class="muted">Not enough answers to vote this round.</div>' : ''}
           <div class="results">
             <div>${rows}
               ${res.pickedWinner.length ? `<p class="muted">Picked the winner (+1): ${res.pickedWinner.map(esc).join(', ')}</p>` : ''}</div>
@@ -357,6 +363,10 @@
     document.getElementById('startBtn').onclick = () => host('start');
     document.querySelectorAll('#segRounds button').forEach((b) => (b.onclick = () => host('settings', { rounds: Number(b.dataset.v) })));
     document.querySelectorAll('#segTime button').forEach((b) => (b.onclick = () => host('settings', { extraTime: Number(b.dataset.v) })));
+    document.querySelectorAll('#segLite button').forEach((b) => {
+      b.classList.toggle('on', (b.dataset.v === '1') === !!Acro.lite);
+      b.onclick = () => { if ((b.dataset.v === '1') !== !!Acro.lite) Acro.setLite(b.dataset.v === '1'); };
+    });
     drawJoin(s);
     if (window.Announcer) Announcer.wireSettings();
     if (window.Soundtrack) Soundtrack.wireSettings();
@@ -368,10 +378,20 @@
     const u = document.getElementById('joinUrl');
     if (!u) return;
     u.textContent = `${joinBase.replace(/^https?:\/\//, '')}/play`;
+    // The QR code is drawn right here (no internet needed) and opens the join page with the room code filled in.
     const qr = document.getElementById('qr');
-    qr.innerHTML = '';
-    if (window.QRCode) new QRCode(qr, { text: url, width: 220, height: 220, colorDark: '#14122b', colorLight: '#ffffff' });
-    else qr.classList.add('hidden');
+    try {
+      qr.innerHTML = window.AcroQR ? AcroQR.svg(url, { size: 168, dark: '#14122b', light: '#ffffff' }) : '';
+    } catch {
+      qr.innerHTML = '';
+    }
+    qr.classList.toggle('hidden', !qr.innerHTML);
+    const help = document.getElementById('joinHelp');
+    const local = /^http:\/\/(localhost|127\.)/.test(joinBase);
+    help.innerHTML = local
+      ? "This computer isn't connected to a network, so phones can't join yet. Connect it to your Wi-Fi."
+      : 'Phones, tablets and laptops must be on the <b>same Wi-Fi</b> as this computer (not a guest network).' +
+        (joinOthers.length ? ` Can't connect? Try ${joinOthers.map((o) => `<b>${esc(o.replace(/^https?:\/\//, ''))}/play</b>`).join(' or ')}.` : '');
   }
 
   function updateLobby(s) {
@@ -385,8 +405,6 @@
     document.querySelectorAll('[data-kick]').forEach((b) => (b.onclick = () => host('kick', { playerId: b.dataset.kick })));
     document.querySelectorAll('#segRounds button').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === s.settings.rounds));
     document.querySelectorAll('#segTime button').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === s.settings.extraTime));
-    document.getElementById('timeNote').textContent =
-      `Answer timers: ${[3, 4, 5, 6, 7].map((n) => `${20 + 5 * (n - 3) + s.settings.extraTime} s`).join(', ')} for 3 to 7 letters. Lightning round: ${s.lightningSecs} s per entry.`;
     const ready = players.filter((p) => p.connected).length;
     const btn = document.getElementById('startBtn');
     btn.disabled = ready < s.minPlayers;

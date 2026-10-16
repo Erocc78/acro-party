@@ -81,8 +81,13 @@ button { cursor: pointer; border: 0; }
 .avatar { font-size: 1.4em; line-height: 1; }
 .err { color: var(--bad); font-weight: 600; }
 .paused-banner {
-  position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,8,25,.72);
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: grid; place-items: center; background: rgba(10,8,25,.72);
   font-size: 40px; font-weight: 700; z-index: 50; backdrop-filter: blur(2px);
 }
 
 .next-in { display: flex; align-items: center; gap: 12px; font-size: 20px; }
+
+/* TV performance mode: no background blur (very expensive on TV chips); cards a little more solid instead */
+html.lite .card, html.lite .paused-banner { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite .card { background: rgba(38, 34, 82, .92); }
+html.lite .champ .avatar { animation: none; }

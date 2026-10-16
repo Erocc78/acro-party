@@ -37,7 +37,7 @@
   .words span.off { box-shadow: 0 0 0 2px var(--pink) inset; }
   .words span.badword { background: var(--bad); color: #fff; }
   .ans-wrap { position: relative; }
-  .naughty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  .naughty { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
     font-size: 30px; font-weight: 900; letter-spacing: .04em; color: #fff; background: var(--bad); border-radius: 14px;
     opacity: 0; transform: scale(.6) rotate(-4deg); }
   .naughty.show { animation: naughty .9s ease-out both; }

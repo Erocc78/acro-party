@@ -7,7 +7,33 @@ const os = require('os');
 const crypto = require('crypto');
 const { Room } = require('./lib/game');
 
-const PORT = Number(process.env.PORT || 3000);
+// Settings file: "Acro Party settings.txt" in the game folder (lines like ELEVENLABS_API_KEY=...).
+// Read by both `node server.js` and the desktop launcher. Real environment variables win.
+// Also accepts the name Windows produces when file extensions are hidden ("...settings.txt.txt").
+const SETTINGS_FILES = ['Acro Party settings.txt', 'Acro Party settings.txt.txt', 'Acro Party settings'];
+let settingsFile = null;
+for (const dir of [...new Set([process.env.ACRO_SETTINGS_DIR, __dirname, process.cwd()].filter(Boolean))]) {
+  for (const name of SETTINGS_FILES) {
+    const f = path.join(dir, name);
+    if (settingsFile || !fs.existsSync(f)) continue;
+    settingsFile = f;
+    try {
+      for (const raw of fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/)) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#')) continue;
+        const i = line.indexOf('=');
+        if (i < 1) continue;
+        const key = line.slice(0, i).trim();
+        const value = line.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+        if (value && process.env[key] == null) process.env[key] = value;
+      }
+    } catch (e) {
+      console.log(`  (Couldn't read ${f}: ${e.message})`);
+    }
+  }
+}
+
+let PORT = Number(process.env.PORT || 3000);
 const PUBLIC = path.join(__dirname, 'public');
 const ROOM_IDLE_MS = 30 * 60 * 1000;
 const CODE_LETTERS = 'BCDFGHJKLMNPQRSTVWXZ'; // 20 consonants, no vowels, no Y
@@ -116,13 +142,31 @@ function ttsAudio(text) {
 
 const rooms = new Map(); // code -> { room, streams: Set<{res, role, playerId}> }
 
-function lanAddress() {
-  for (const list of Object.values(os.networkInterfaces())) {
-    for (const i of list || []) {
-      if (i.family === 'IPv4' && !i.internal) return i.address;
+// The address phones should use. Skips virtual adapters (VPN, WSL, Hyper-V, VirtualBox, Docker...) that phones
+// can't reach, and prefers normal home-network addresses.
+function lanAddresses() {
+  const VIRTUAL = /vEthernet|VirtualBox|VMware|WSL|Hyper-V|Loopback|Tailscale|ZeroTier|docker|br-|veth|utun|vboxnet|Bluetooth/i;
+  const list = [];
+  for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+    for (const i of addrs || []) {
+      if (i.family !== 'IPv4' && i.family !== 4) continue;
+      if (i.internal || i.address.startsWith('169.254.')) continue;
+      let score = 0;
+      if (VIRTUAL.test(name)) score -= 10;
+      if (/^192\.168\./.test(i.address)) score += 3;
+      else if (/^10\./.test(i.address)) score += 2;
+      else if (/^172\.(1[6-9]|2\d|3[01])\./.test(i.address)) score += 1;
+      if (/^192\.168\.56\./.test(i.address)) score -= 5; // VirtualBox host-only
+      if (/wi-?fi|wlan|wireless|ethernet|^en\d|^eth\d/i.test(name)) score += 1;
+      list.push({ name, address: i.address, score });
     }
   }
-  return 'localhost';
+  return list.sort((a, b) => b.score - a.score);
+}
+
+function lanAddress() {
+  const best = lanAddresses()[0];
+  return best ? best.address : 'localhost';
 }
 
 function newCode() {
@@ -195,7 +239,15 @@ function serveStatic(req, res, pathname) {
   const rel = ROUTES[pathname] || pathname.slice(1);
   const file = path.normalize(path.join(PUBLIC, rel));
   if (!file.startsWith(PUBLIC)) return sendJson(res, 404, { error: 'Not found' });
-  fs.readFile(file, (err, buf) => {
+  // The Windows app carries every file inside the .exe (global.ACRO_ASSETS); otherwise read from the public folder.
+  const read = global.ACRO_ASSETS
+    ? (f, cb) => {
+        const key = path.relative(PUBLIC, f).split(path.sep).join('/');
+        const buf = global.ACRO_ASSETS[key];
+        buf ? cb(null, buf) : cb(new Error('missing'));
+      }
+    : fs.readFile;
+  read(file, (err, buf) => {
     if (err) return sendJson(res, 404, { error: 'Not found' });
     // Music files are big and rarely change, so browsers may keep them for a day; everything else is always fresh.
     const cache = path.extname(file) === '.mp3' ? 'public, max-age=86400' : 'no-store';
@@ -214,7 +266,10 @@ async function api(req, res, pathname) {
   const body = req.method === 'POST' ? await readBody(req) : {};
 
   if (pathname === '/api/info') {
-    return sendJson(res, 200, { lanUrl: `http://${lanAddress()}:${PORT}` });
+    const all = lanAddresses().filter((a) => a.score > -5).map((a) => `http://${a.address}:${PORT}`);
+    // The LG TV app looks for the game on the network by calling this, so allow it from any origin.
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return sendJson(res, 200, { app: 'acro-party', lanUrl: all[0] || `http://${lanAddress()}:${PORT}`, others: all.slice(1, 3) });
   }
 
   if (pathname === '/api/tts/status') {
@@ -370,10 +425,46 @@ const server = http.createServer((req, res) => {
   return serveStatic(req, res, url.pathname);
 });
 
-server.listen(PORT, () => {
+// If the port is taken (for example the game is already open), try the next few, unless PORT was set on purpose.
+let portTries = 0;
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE' && !process.env.PORT && portTries++ < 10) {
+    PORT++;
+    setTimeout(() => server.listen(PORT), 100);
+    return;
+  }
+  console.error(`\n  Could not start Acro Party: ${e.message}\n`);
+  if (global.acroDesktopFailed) global.acroDesktopFailed(e);
+  else process.exit(1);
+});
+
+// Windows: phones can't connect when Windows treats the Wi-Fi as a "Public" network or the firewall
+// blocks Node.js. Check the network type and print clear steps if something will get in the way.
+function checkWindowsNetwork() {
+  if (process.platform !== 'win32' || process.env.ACRO_SKIP_NETCHECK) return;
+  const { execFile } = require('child_process');
+  execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Get-NetConnectionProfile | ForEach-Object { "$($_.InterfaceAlias)|$($_.NetworkCategory)" }'],
+    { timeout: 8000, windowsHide: true }, (err, stdout) => {
+      const lines = String(stdout || '').trim().split(/\r?\n/).filter(Boolean);
+      const pub = lines.filter((l) => /\|Public$/i.test(l)).map((l) => l.split('|')[0]);
+      if (pub.length) {
+        console.log(`  HEADS UP: Windows treats your network (${pub.join(', ')}) as "Public", which blocks phones from joining.`);
+        console.log('  Fix: Settings > Network & internet > Wi-Fi (or Ethernet) > your network > Network profile type: Private.');
+        console.log('  Then restart Acro Party.\n');
+      }
+      console.log("  Phones can't connect? Make sure Windows Firewall allows Node.js (or AcroParty) on Private networks:");
+      console.log('  Windows Security > Firewall & network protection > Allow an app through firewall.\n');
+    });
+}
+
+server.listen(PORT);
+server.on('listening', () => {
+  setImmediate(checkWindowsNetwork);
+  if (global.acroDesktopReady) return global.acroDesktopReady({ port: PORT, lan: `http://${lanAddress()}:${PORT}`, others: lanAddresses().slice(1).map((a) => a.address), aiVoice: !!TTS.key });
   const lan = `http://${lanAddress()}:${PORT}`;
   console.log('\n  Acro Party is running!\n');
   console.log(`  TV / host screen:  http://localhost:${PORT}/host`);
   console.log(`  Phones join at:    ${lan}/play   (same Wi-Fi network)\n`);
-  console.log(TTS.key ? `  AI announcer voice: ON (ElevenLabs voice ${TTS.voice}, model ${TTS.model})\n` : '  AI announcer voice: off (set ELEVENLABS_API_KEY to turn it on)\n');
+  console.log(TTS.key ? `  AI announcer voice: ON (ElevenLabs voice ${TTS.voice}, model ${TTS.model})\n` : `  AI announcer voice: off. Put "Acro Party settings.txt" with ELEVENLABS_API_KEY=your-key in ${__dirname}, or set the ELEVENLABS_API_KEY environment variable.\n`);
+  if (settingsFile) console.log(`  Settings read from: ${settingsFile}\n`);
 });

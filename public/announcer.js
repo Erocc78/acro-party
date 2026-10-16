@@ -5,7 +5,7 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : ''));
   const spell = (letters) => letters.join(', ');
-  const listNames = (names) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
+  const listNames = (names) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
   const NUM = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
   // ---------- the script ----------
@@ -36,6 +36,7 @@
     tie: { any: ["It's a tie! {names} split the round!", 'We have a tie between {names}!'] },
     noVotes: { any: ['Nobody voted? Tough crowd!'] },
     noVote: { any: ['Not enough answers to vote on that one. Come on, people!'] },
+    soloWin: { any: ['Only one answer came in, so {name} takes the whole round! "{text}"', '{name} was the only one to beat the clock and wins the round! "{text}"'] },
     nobody: { any: ['Nobody answered! Is this thing on?'] },
     fastest: { any: ['{name} was fastest on the buzzer.', 'Speed bonus goes to {name}!'] },
     leader: { any: ['{name} leads with {score} points.', '{name} is out in front with {score}!', 'At the top of the board: {name}, with {score}.'] },
@@ -233,7 +234,12 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .12s, transform .12s; margin-bottom: 80px; }
     #ace .bubble b.gw-name { display: block; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #9c2a4c; margin-bottom: 2px; }
     #ace.show .bubble { opacity: 1; transform: none; }
+    /* In the lobby, Gene's bubble runs wide and low so it doesn't cover the QR code, room code or Start button. */
+    html.in-lobby #ace { max-width: min(1000px, 74vw); }
+    html.in-lobby #ace .bubble { font-size: 19px; margin-bottom: 64px; }
     #ace .mascot { flex: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); }
+    html.lite #ace .mascot { filter: none; }
+    html.lite #ace.talking .mascot { animation: none; }
     #ace .gw-head { transform-origin: 80px 140px; transform-box: view-box; transition: transform .35s ease; }
     #ace.talking .gw-head { animation: gw-nod 2.6s ease-in-out infinite; }
     @keyframes gw-nod { 0%,100% { transform: rotate(-1.6deg); } 30% { transform: rotate(1.2deg) translateY(-.6px); } 60% { transform: rotate(-.4deg) translateY(.4px); } }
@@ -607,6 +613,7 @@
         const out = [];
         const winners = r.rows.filter((x) => x.winner);
         if (!r.rows.length) out.push(line('nobody', mode));
+        else if (r.solo && winners.length === 1) out.push(line('soloWin', mode, { name: winners[0].name, text: winners[0].text }));
         else if (r.noVote) out.push(line('noVote', mode));
         else if (!winners.length) out.push(line('noVotes', mode));
         else if (winners.length === 1) out.push(line('winner', mode, { name: winners[0].name, text: winners[0].text }));

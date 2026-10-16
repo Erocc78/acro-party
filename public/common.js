@@ -1,6 +1,6 @@
 // Helpers shared by the TV and phone screens.
 window.Acro = {
-  VERSION: 'v0.29',
+  VERSION: 'v0.37',
   offset: 0,
 
   async post(url, body) {
@@ -150,6 +150,26 @@ window.Acro = {
     },
   },
 };
+
+// TV performance mode ("lite"): lighter visuals and music for smart TVs and other slow devices.
+// On automatically for TV browsers (LG webOS, Samsung, Android TV, Fire TV...). Override with ?lite=1 or ?lite=0
+// in the address (remembered on that device), or with the setting in the TV lobby.
+(function () {
+  let saved = null;
+  try {
+    const q = new URLSearchParams(location.search).get('lite');
+    if (q !== null) localStorage.setItem('acro-lite', q === '0' ? '0' : '1');
+    saved = localStorage.getItem('acro-lite');
+  } catch {}
+  const tv = /Web0S|webOS|SmartTV|SMART-TV|Tizen|NetCast|BRAVIA|HbbTV|CrKey|AFT[A-Z]|GoogleTV|Android TV|AppleTV/i.test(navigator.userAgent);
+  Acro.isTV = tv;
+  Acro.lite = saved === '1' || (saved === null && tv);
+  if (Acro.lite) document.documentElement.classList.add('lite');
+  Acro.setLite = (on) => {
+    try { localStorage.setItem('acro-lite', on ? '1' : '0'); } catch {}
+    location.reload();
+  };
+})();
 
 // Small version label in the corner, so you can tell which version a browser is running.
 document.addEventListener('DOMContentLoaded', () => {

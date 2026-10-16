@@ -4,13 +4,15 @@
 (function () {
   const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const small = Math.min(innerWidth, innerHeight) < 600;
+  // TV performance mode (see common.js): static color layers, fewer stars at 30 fps, no filters or blending.
+  const lite = (window.Acro && Acro.lite) || document.documentElement.classList.contains('lite');
 
   const css = document.createElement('style');
   css.textContent = `
     html { background: #06051a !important; }
     body { background: transparent !important; }
     .bg-trip, .bg-trip::before, .bg-trip::after { position: fixed; pointer-events: none; }
-    .bg-trip { inset: 0; z-index: -4; overflow: hidden; }
+    .bg-trip { top: 0; right: 0; bottom: 0; left: 0; z-index: -4; overflow: hidden; }
     .bg-trip::before, .bg-trip::after {
       content: ''; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; border-radius: 50%;
     }
@@ -22,16 +24,16 @@
       background: repeating-conic-gradient(from 30deg, #3a1cff 0deg, #ff3d6e 30deg, #00e0ff 60deg, #3a1cff 90deg);
       opacity: .17; mix-blend-mode: screen; animation: bg-spin 140s linear infinite reverse;
     }
-    .bg-nebula { position: fixed; inset: -20%; z-index: -3; pointer-events: none;
+    .bg-nebula { position: fixed; top: -20%; right: -20%; bottom: -20%; left: -20%; z-index: -3; pointer-events: none;
       background:
         radial-gradient(40% 35% at 25% 30%, rgba(255, 47, 160, .36), transparent 70%),
         radial-gradient(35% 40% at 75% 70%, rgba(24, 200, 255, .3), transparent 70%),
         radial-gradient(30% 30% at 70% 20%, rgba(122, 44, 255, .38), transparent 70%),
         radial-gradient(30% 25% at 30% 80%, rgba(44, 255, 180, .16), transparent 70%);
       animation: bg-drift 40s ease-in-out infinite alternate; }
-    .bg-vignette { position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    .bg-vignette { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: -2; pointer-events: none;
       background: radial-gradient(ellipse at center, rgba(6,5,26,.1) 0%, rgba(6,5,26,.45) 65%, rgba(6,5,26,.85) 100%); }
-    .bg-stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; width: 100%; height: 100%; }
+    .bg-stars { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: -1; pointer-events: none; width: 100%; height: 100%; }
     @keyframes bg-spin { to { transform: rotate(360deg); } }
     @keyframes bg-drift { 0% { transform: translate(-3%, -2%) scale(1) rotate(0deg); } 100% { transform: translate(3%, 2%) scale(1.15) rotate(12deg); } }
     ${small ? '.bg-trip::before { opacity: .1 } .bg-trip::after { opacity: .07 } .bg-nebula { opacity: .8 }' : ''}
@@ -51,7 +53,7 @@
     @keyframes bg-vig { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
     /* Urgency: red shading in the lightning round. A red glow creeps in from the edges and throbs on the beat,
        the nebula and swirls turn red, and an alarm-red ring joins the shockwaves. */
-    .bg-red { position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: 0; transition: opacity 1.2s;
+    .bg-red { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: -2; pointer-events: none; opacity: 0; transition: opacity 1.2s;
       background:
         radial-gradient(ellipse at center, rgba(255, 20, 40, 0) 30%, rgba(255, 20, 40, .38) 72%, rgba(200, 0, 20, .7) 100%),
         linear-gradient(180deg, rgba(160, 0, 20, .28), rgba(60, 0, 10, .12) 50%, rgba(160, 0, 20, .28)); }
@@ -79,6 +81,16 @@
       87%  { transform: translate(-1px, 2px) rotate(-1.5deg) scale(1.05); }
       100% { transform: translate(0, 0) rotate(0deg) scale(1.04); }
     }
+    /* TV performance mode: everything that forces big repaints each frame is switched off. Only cheap
+       transform/opacity animations remain. */
+    html.lite .bg-trip::before, html.lite .bg-trip::after { animation: none !important; mix-blend-mode: normal !important; filter: none !important; }
+    html.lite .bg-trip::after { display: none; }
+    html.lite .bg-nebula, html.lite.bg-intense .bg-nebula { animation: none !important; filter: none !important; }
+    html.lite .bg-vignette, html.lite.bg-intense .bg-vignette { animation: none !important; }
+    html.lite .bg-pulse { display: none; }
+    html.lite.bg-intense .bg-red { animation: none !important; opacity: .9; }
+    html.lite.bg-intense .bg-trip::before { filter: none !important; opacity: .18; }
+    html.lite.bg-intense .tiles:not(.drop) .tile { animation: tile-shake .41s linear infinite !important; box-shadow: 0 .08em 0 rgba(0,0,0,.35), 0 0 .4em rgba(255, 40, 60, .8); }
     @media (prefers-reduced-motion: reduce) {
       .bg-trip::before, .bg-trip::after, .bg-nebula, html.bg-intense .bg-nebula, html.bg-intense .bg-pulse, html.bg-intense .bg-vignette, html.bg-intense .bg-red, html.bg-intense .tiles .tile { animation: none !important; }
     }
@@ -114,7 +126,7 @@
     const g = canvas.getContext('2d');
     let W = 0, H = 0;
     const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = lite ? 1 : Math.min(2, window.devicePixelRatio || 1);
       W = innerWidth;
       H = innerHeight;
       canvas.width = W * dpr;
@@ -125,7 +137,7 @@
     addEventListener('resize', resize);
 
     const HUES = [200, 270, 320, 180, 45, 0];
-    const COUNT = small ? 160 : 420;
+    const COUNT = lite ? 110 : small ? 160 : 420;
     const spawn = (s, far) => {
       s.x = Math.random() * 2 - 1;
       s.y = Math.random() * 2 - 1;
@@ -166,7 +178,7 @@
         g.lineTo(sx, sy);
         g.stroke();
         // sparkle on the brightest stars
-        if (near > 0.82 && speed < 3) {
+        if (!lite && near > 0.82 && speed < 3) {
           g.strokeStyle = `hsla(${s.hue}, ${s.sat}%, 92%, ${alpha * 0.6})`;
           g.lineWidth = 1;
           const r = size * 3;
@@ -183,6 +195,8 @@
       return;
     }
     const frame = (now) => {
+      // In TV performance mode, draw at most ~30 times a second.
+      if (lite && now - last < 30) return requestAnimationFrame(frame);
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       t += dt;

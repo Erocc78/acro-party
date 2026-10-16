@@ -32,11 +32,16 @@
 
   /* lobby */
   .lobby { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.2fr); gap: 32px; align-items: start; }
-  .join { display: grid; gap: 18px; justify-items: center; text-align: center; }
+  .join { display: grid; gap: 14px; justify-items: center; text-align: center; min-width: 0; }
   .code-tiles { font-size: clamp(56px, 6.5vw, 96px); flex-wrap: nowrap; }
   .code-tiles .tile { background: var(--text); }
-  #qr { background: #fff; padding: 14px; border-radius: 16px; line-height: 0; }
-  #qr img, #qr canvas { width: 220px; height: 220px; }
+  #qr { background: #fff; padding: 8px; border-radius: 14px; line-height: 0; flex: none; }
+  #qr svg { width: 168px; height: 168px; display: block; }
+  .join-row { display: flex; align-items: center; gap: 22px; justify-content: center; }
+  .join-row .code-side { display: grid; gap: 10px; justify-items: center; min-width: 0; }
+  .join-row .code-tiles { font-size: clamp(40px, 4.2vw, 72px); gap: 10px; }
+  .join-help { font-size: 15px; line-height: 1.4; max-width: 460px; }
+  .join-help b { color: var(--text); font-weight: 600; }
   .url { font-size: 26px; font-weight: 600; word-break: break-all; }
   .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 14px 0 24px; }
   .chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--card-2); border-radius: 14px; font-weight: 600; animation: pop .3s ease both; }
@@ -116,7 +121,7 @@
 </header>
 <main id="app"></main>
 <div id="paused" class="paused-banner hidden"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/shared/qr.js"></script>
 <script src="/common.js"></script>
 <script src="/background.js"></script>
 <script src="/sound.js"></script>

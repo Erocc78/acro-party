@@ -144,7 +144,7 @@ async function playGame({ mode, rounds, players: n, checks }) {
 }
 
 (async () => {
-  const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, GAME_SPEED: '0.04' }, stdio: 'inherit' });
+  const server = spawn(process.execPath, [process.env.ACRO_ENTRY || path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, GAME_SPEED: '0.04', OPEN_BROWSER: 'no' }, stdio: 'inherit' });
   await sleep(600);
   const checks = {};
   try {
