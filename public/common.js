@@ -1,6 +1,6 @@
 // Helpers shared by the TV and phone screens.
 window.Acro = {
-  VERSION: 'v0.38',
+  VERSION: 'v0.39',
   offset: 0,
 
   async post(url, body) {
@@ -105,12 +105,14 @@ window.Acro = {
   },
 
   timerHtml(size = 120, stroke = 10) {
+    // Sized in rem so it scales with the screen (1rem = 16px on phones; the TV screen scales rem to its size).
     const r = (size - stroke) / 2;
     const c = 2 * Math.PI * r;
-    return `<div class="timer" data-timer data-c="${c}" style="width:${size}px;height:${size}px">
-      <svg width="${size}" height="${size}"><circle class="track" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}"/>
+    const rem = (n) => `${+(n / 16).toFixed(4)}rem`;
+    return `<div class="timer" data-timer data-c="${c}" style="width:${rem(size)};height:${rem(size)}">
+      <svg viewBox="0 0 ${size} ${size}" width="100%" height="100%"><circle class="track" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}"/>
       <circle class="bar" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" stroke-dasharray="${c}" stroke-dashoffset="0"/></svg>
-      <div class="num" style="font-size:${Math.round(size * 0.36)}px"></div></div>`;
+      <div class="num" style="font-size:${rem(Math.round(size * 0.36))}"></div></div>`;
   },
 
   // Keeps every timer on the page in sync with the server clock.

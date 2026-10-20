@@ -98,8 +98,8 @@
   // ---------- lobby settings ----------
   function settingsHtml() {
     const st = Sound.settings;
-    return `<div class="setting"><span>Music</span><input type="range" id="sndMusic" min="0" max="100" value="${Math.round(st.music * 100)}" style="flex:1;max-width:260px;accent-color:var(--accent)"></div>
-      <div class="setting"><span>Sound effects</span><input type="range" id="sndSfx" min="0" max="100" value="${Math.round(st.sfx * 100)}" style="flex:1;max-width:260px;accent-color:var(--accent)"></div>
+    return `<div class="setting"><span>Music</span><input type="range" id="sndMusic" min="0" max="100" value="${Math.round(st.music * 100)}" style="flex:1;max-width:16.25rem;accent-color:var(--accent)"></div>
+      <div class="setting"><span>Sound effects</span><input type="range" id="sndSfx" min="0" max="100" value="${Math.round(st.sfx * 100)}" style="flex:1;max-width:16.25rem;accent-color:var(--accent)"></div>
       <div class="setting"><span>Timer ticker</span><div class="seg" id="segTick"><button data-v="1">On</button><button data-v="0">Off</button></div></div>`;
   }
   function wireSettings() {

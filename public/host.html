@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="tv-screen">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -8,107 +8,121 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 <style>
-  body { font-size: 22px; }
-  header { display: flex; align-items: center; gap: 16px; padding: 18px 32px; }
-  header .logo { font-size: 28px; font-weight: 700; }
+  /* The TV screen scales with the display: 1rem is 16px on a 1920x1080 screen, and grows or shrinks in
+     proportion (whichever of width or height is tighter), so the layout looks the same on any screen size. */
+  html.tv-screen { font-size: clamp(7px, min(0.8333vw, 1.4815vh), 48px); }
+  body { font-size: 1.375rem; padding-bottom: var(--gene-band, 0); overflow-x: hidden; }
+  /* #app is shrunk further (fitToScreen in host.js) if a screen's content would not fit above Gene. */
+  #app { transform-origin: top center; }
+  header { display: flex; align-items: center; gap: 1rem; padding: 1.125rem 2rem; }
+  header .logo { font-size: 1.75rem; font-weight: 700; }
   header .logo span { color: var(--accent); }
   header .spacer { flex: 1; }
   header .roomcode { font-weight: 700; letter-spacing: 3px; color: var(--muted); }
   header .roomcode b { color: var(--text); }
-  #app { padding: 8px 32px 40px; max-width: 1500px; margin: 0 auto; }
-  h2 { font-size: 40px; margin: 0 0 8px; }
-  .kicker { color: var(--accent); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; font-size: 20px; }
-  .stage { display: grid; justify-items: center; gap: 28px; text-align: center; padding-top: 3vh; }
-  .big-tiles { font-size: clamp(96px, 12vw, 200px); }
-  .med-tiles { font-size: 64px; }
-  .sm-tiles { font-size: 40px; }
+  #app { padding: 0.5rem 2rem 0.75rem; max-width: 93.75rem; margin: 0 auto; }
+  h2 { font-size: 2.5rem; margin: 0 0 0.5rem; }
+  .kicker { color: var(--accent); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; font-size: 1.25rem; }
+  .stage { display: grid; justify-items: center; gap: 1.75rem; text-align: center; padding-top: 3vh; }
+  .big-tiles { font-size: clamp(6rem, 12vw, 12.5rem); }
+  .med-tiles { font-size: 4rem; }
+  .sm-tiles { font-size: 2.5rem; }
 
   /* mode picker */
-  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 980px; margin: 4vh auto 0; }
-  .mode { text-align: left; padding: 32px; display: grid; gap: 10px; border: 2px solid var(--line); }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1.5rem; max-width: 61.25rem; margin: 4vh auto 0; }
+  .mode { text-align: left; padding: 2rem; display: grid; gap: 0.625rem; border: 2px solid var(--line); }
   .mode:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .mode b { font-size: 34px; }
-  .mode ul { margin: 6px 0 0; padding-left: 22px; color: var(--muted); line-height: 1.5; }
+  .mode b { font-size: 2.125rem; }
+  .mode ul { margin: 0.375rem 0 0; padding-left: 1.375rem; color: var(--muted); line-height: 1.5; }
 
   /* lobby */
-  .lobby { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.2fr); gap: 32px; align-items: start; }
-  .btn.ghost.how-btn { text-decoration: none; display: inline-block; font-size: 22px; padding: 14px 30px; margin-top: 6px; color: var(--text); border-color: var(--accent); }
-  .join { display: grid; gap: 14px; justify-items: center; text-align: center; min-width: 0; }
-  .code-tiles { font-size: clamp(56px, 6.5vw, 96px); flex-wrap: nowrap; }
+  .lobby { display: grid; grid-template-columns: minmax(22.5rem, 1fr) minmax(26.25rem, 1.2fr); gap: 2rem; align-items: start; }
+  .btn.ghost.how-btn { text-decoration: none; display: inline-block; font-size: 1.375rem; padding: 0.875rem 1.875rem; margin-top: 0.375rem; color: var(--text); border-color: var(--accent); }
+  .join { display: grid; gap: 0.875rem; justify-items: center; text-align: center; min-width: 0; }
+  .code-tiles { font-size: clamp(3.5rem, 6.5vw, 6rem); flex-wrap: nowrap; }
   .code-tiles .tile { background: var(--text); }
-  #qr { background: #fff; padding: 8px; border-radius: 14px; line-height: 0; flex: none; }
-  #qr svg { width: 168px; height: 168px; display: block; }
-  .join-row { display: flex; align-items: center; gap: 22px; justify-content: center; }
-  .join-row .code-side { display: grid; gap: 10px; justify-items: center; min-width: 0; }
-  .join-row .code-tiles { font-size: clamp(40px, 4.2vw, 72px); gap: 10px; }
-  .join-help { font-size: 15px; line-height: 1.4; max-width: 460px; }
+  #qr { background: #fff; padding: 0.5rem; border-radius: 0.875rem; line-height: 0; flex: none; }
+  #qr svg { width: 10.5rem; height: 10.5rem; display: block; }
+  .join-row { display: flex; align-items: center; gap: 1.375rem; justify-content: center; }
+  .join-row .code-side { display: grid; gap: 0.625rem; justify-items: center; min-width: 0; }
+  .join-row .code-tiles { font-size: clamp(2.5rem, 4.2vw, 4.5rem); gap: 0.625rem; }
+  .join-help { font-size: 0.9375rem; line-height: 1.4; max-width: 28.75rem; }
   .join-help b { color: var(--text); font-weight: 600; }
-  .url { font-size: 26px; font-weight: 600; word-break: break-all; }
-  .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 14px 0 24px; }
-  .chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--card-2); border-radius: 14px; font-weight: 600; animation: pop .3s ease both; }
+  .url { font-size: 1.625rem; font-weight: 600; word-break: break-all; }
+  .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem; margin: 0.875rem 0 1.5rem; }
+  .chip { display: flex; align-items: center; gap: 0.625rem; padding: 0.75rem 0.875rem; background: var(--card-2); border-radius: 0.875rem; font-weight: 600; animation: pop .3s ease both; }
   .chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chip.off { opacity: .45; }
-  .chip .x { background: none; color: var(--muted); font-size: 22px; padding: 0 4px; }
-  .slot { border: 2px dashed var(--line); border-radius: 14px; min-height: 54px; }
-  .settings { display: grid; gap: 14px; margin-bottom: 24px; }
-  .setting { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .setting > span { min-width: 150px; color: var(--muted); }
-  .paused-box { display: grid; justify-items: center; gap: 22px; text-align: center; }
-  .paused-title { font-size: 64px; font-weight: 700; }
-  details.more summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 19px; }
+  .chip .x { background: none; color: var(--muted); font-size: 1.375rem; padding: 0 0.25rem; }
+  .slot { border: 2px dashed var(--line); border-radius: 0.875rem; min-height: 3.375rem; }
+  .settings { display: grid; gap: 0.875rem; margin-bottom: 1.5rem; }
+  .setting { display: flex; align-items: center; gap: 0.875rem; flex-wrap: wrap; }
+  .setting > span { min-width: 9.375rem; color: var(--muted); }
+  .paused-box { display: grid; justify-items: center; gap: 1.375rem; text-align: center; }
+  .paused-title { font-size: 4rem; font-weight: 700; }
+  details.more summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 1.1875rem; }
   details.more[open] summary { color: var(--text); }
-  .seg { display: inline-flex; background: var(--bg-2); border-radius: 12px; padding: 4px; gap: 4px; }
-  .seg button { background: none; padding: 8px 18px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+  .seg { display: inline-flex; background: var(--bg-2); border-radius: 0.75rem; padding: 0.25rem; gap: 0.25rem; }
+  .seg button { background: none; padding: 0.5rem 1.125rem; border-radius: 0.5625rem; font-weight: 600; color: var(--muted); }
   .seg button.on { background: var(--accent); color: var(--accent-ink); }
 
   /* answering / voting */
-  .progress { font-size: 30px; color: var(--muted); }
+  .progress { font-size: 1.875rem; color: var(--muted); }
   .progress b { color: var(--text); }
-  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; width: 100%; text-align: left; }
-  .option { display: flex; gap: 18px; align-items: center; font-size: 30px; font-weight: 500; animation: pop .35s ease both; }
-  .option .n { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
-  .toprow { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 24px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(23.75rem, 1fr)); gap: 1.125rem; width: 100%; text-align: left; }
+  .option { display: flex; gap: 1.125rem; align-items: center; font-size: 1.875rem; font-weight: 500; animation: pop .35s ease both; }
+  .option .n { flex: none; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; }
+  .toprow { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 1.5rem; }
 
   /* results */
-  .results { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; text-align: left; width: 100%; }
-  .row { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; align-items: center; animation: pop .4s ease both; }
-  .row + .row { margin-top: 12px; }
-  .row .txt { font-size: 30px; font-weight: 500; }
-  .row .by { color: var(--muted); font-size: 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .row .votes { grid-row: span 2; font-size: 40px; font-weight: 700; text-align: center; min-width: 80px; }
-  .row .votes small { display: block; font-size: 15px; color: var(--muted); font-weight: 500; }
+  .results { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.75rem; text-align: left; width: 100%; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 0.375rem 1rem; align-items: center; animation: pop .4s ease both; }
+  .rows { display: grid; gap: 0.75rem; }
+  /* Lots of answers: two columns of compact rows, so all of them fit with the scoreboard. */
+  .results.many { grid-template-columns: 2.2fr 1fr; }
+  .results.many .rows { grid-template-columns: 1fr 1fr; gap: 0.625rem; }
+  .results.many .row { padding: 0.75rem 0.875rem; }
+  .results.many .row .txt { font-size: 1.375rem; }
+  .results.many .row .votes { font-size: 1.875rem; min-width: 3.5rem; }
+  .results.lots .row .txt { font-size: 1.25rem; }
+  .results.lots .row { padding: 0.625rem 0.75rem; }
+  .results.lots .board .line { padding: 0.375rem 0.25rem; font-size: 1.25rem; }
+  .row .txt { font-size: 1.875rem; font-weight: 500; }
+  .row .by { color: var(--muted); font-size: 1.25rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .row .votes { grid-row: span 2; font-size: 2.5rem; font-weight: 700; text-align: center; min-width: 5rem; }
+  .row .votes small { display: block; font-size: 0.9375rem; color: var(--muted); font-weight: 500; }
   .row.winner { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
-  .board .line { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 24px; }
+  .board .line { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--line); font-size: 1.5rem; }
   .board .line:last-child { border: 0; }
-  .board .rank { width: 32px; color: var(--muted); font-weight: 700; }
+  .board .rank { width: 2rem; color: var(--muted); font-weight: 700; }
   .board .nm { flex: 1; font-weight: 600; }
-  .board .delta { color: var(--good); font-weight: 600; font-size: 20px; }
-  .board .pts { font-weight: 700; min-width: 56px; text-align: right; }
+  .board .delta { color: var(--good); font-weight: 600; font-size: 1.25rem; }
+  .board .pts { font-weight: 700; min-width: 3.5rem; text-align: right; }
 
   /* lightning */
-  .vs { display: flex; align-items: center; gap: 36px; font-size: 48px; font-weight: 700; }
-  .vs .who { display: grid; justify-items: center; gap: 8px; }
-  .vs .who .avatar { font-size: 96px; }
+  .vs { display: flex; align-items: center; gap: 2.25rem; font-size: 3rem; font-weight: 700; }
+  .vs .who { display: grid; justify-items: center; gap: 0.5rem; }
+  .vs .who .avatar { font-size: 6rem; }
   .vs .mid { color: var(--pink); }
-  .fin-status { display: flex; gap: 24px; }
-  .fin-status .card { min-width: 280px; display: flex; gap: 14px; align-items: center; font-size: 26px; font-weight: 600; }
+  .fin-status { display: flex; gap: 1.5rem; }
+  .fin-status .card { min-width: 17.5rem; display: flex; gap: 0.875rem; align-items: center; font-size: 1.625rem; font-weight: 600; }
   .fin-status .done { color: var(--good); }
-  .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; text-align: left; }
-  .pair { display: grid; gap: 12px; align-content: start; }
-  .pair .opt { background: var(--bg-2); border-radius: 12px; padding: 12px 14px; font-size: 24px; display: grid; gap: 4px; }
+  .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; width: 100%; text-align: left; }
+  .pair { display: grid; gap: 0.75rem; align-content: start; }
+  .pair .opt { background: var(--bg-2); border-radius: 0.75rem; padding: 0.75rem 0.875rem; font-size: 1.5rem; display: grid; gap: 0.25rem; }
   .pair .opt .lbl { font-weight: 700; color: var(--accent); }
   .pair .opt.won { box-shadow: 0 0 0 3px var(--accent) inset; }
-  .pair .opt .meta { font-size: 17px; color: var(--muted); }
+  .pair .opt .meta { font-size: 1.0625rem; color: var(--muted); }
   .reveal { animation: pop .5s ease both; }
-  .champ { display: grid; justify-items: center; gap: 10px; }
-  .champ .avatar { font-size: 120px; animation: pulse 1.6s ease-in-out infinite; }
-  .champ .title { font-size: 64px; font-weight: 700; color: var(--accent); }
-  .actions { display: flex; gap: 14px; justify-content: center; }
-  @media (max-width: 900px) {
+  .champ { display: grid; justify-items: center; gap: 0.625rem; }
+  .champ .avatar { font-size: 7.5rem; animation: pulse 1.6s ease-in-out infinite; }
+  .champ .title { font-size: 4rem; font-weight: 700; color: var(--accent); }
+  .actions { display: flex; gap: 0.875rem; justify-content: center; }
+  @media (max-width: 900px) and (orientation: portrait) {
     .lobby, .results { grid-template-columns: 1fr; }
     .pairs { grid-template-columns: 1fr; }
-    header { padding: 14px 16px; flex-wrap: wrap; }
-    #app { padding: 8px 16px 32px; }
+    header { padding: 0.875rem 1rem; flex-wrap: wrap; }
+    #app { padding: 0.5rem 1rem 2rem; }
   }
 </style>
 </head>

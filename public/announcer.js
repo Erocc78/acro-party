@@ -229,15 +229,20 @@
 
   const css = document.createElement('style');
   css.textContent = `
-    #ace { position: fixed; left: 24px; bottom: 18px; display: flex; align-items: flex-end; gap: 12px; z-index: 40; pointer-events: none; max-width: min(660px, 42vw); }
-    #ace .bubble { background: #fff; color: #1b1530; border-radius: 22px 22px 22px 6px; padding: 12px 18px; font-size: 21px; font-weight: 600; line-height: 1.3;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .12s, transform .12s; margin-bottom: 80px; }
-    #ace .bubble b.gw-name { display: block; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #9c2a4c; margin-bottom: 2px; }
+    /* Gene lives in a band along the bottom of the TV screen. The game content is laid out above that band
+       (see host.html), so he never covers it. Everything is in rem, which scales with the screen size. */
+    :root { --gene-w: 7rem; --gene-band: calc(var(--gene-w) * 1.25 + 1.25rem); }
+    html.gene-compact { --gene-w: 5.25rem; }
+    html.gene-off { --gene-band: 0.5rem; }
+    #ace { position: fixed; left: 1.25rem; bottom: 0.625rem; height: calc(var(--gene-w) * 1.25); display: flex; align-items: center; gap: 0.75rem; z-index: 40; pointer-events: none; max-width: calc(100vw - 2.5rem); }
+    #ace svg { width: var(--gene-w); height: calc(var(--gene-w) * 1.25); display: block; transition: width .3s, height .3s; }
+    #ace .bubble { background: #fff; color: #1b1530; border-radius: 1.25rem 1.25rem 1.25rem 0.375rem; padding: 0.5rem 1rem; font-size: 1.25rem; font-weight: 600; line-height: 1.28;
+      max-width: 62rem; max-height: 100%; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5;
+      box-shadow: 0 0.625rem 1.875rem rgba(0,0,0,.35); opacity: 0; transform: translateY(0.5rem) scale(.97); transition: opacity .12s, transform .12s; }
+    html.gene-compact #ace .bubble { font-size: 1.0625rem; -webkit-line-clamp: 4; }
+    #ace .bubble b.gw-name { display: block; font-size: 0.75rem; letter-spacing: .08em; text-transform: uppercase; color: #9c2a4c; margin-bottom: 1px; }
     #ace.show .bubble { opacity: 1; transform: none; }
-    /* In the lobby, Gene's bubble runs wide and low so it doesn't cover the QR code, room code or Start button. */
-    html.in-lobby #ace { max-width: min(1000px, 74vw); }
-    html.in-lobby #ace .bubble { font-size: 19px; margin-bottom: 64px; }
-    #ace .mascot { flex: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); }
+    #ace .mascot { flex: none; filter: drop-shadow(0 0.5rem 0.875rem rgba(0,0,0,.35)); }
     html.lite #ace .mascot { filter: none; }
     html.lite #ace.talking .mascot { animation: none; }
     #ace .gw-head { transform-origin: 80px 140px; transform-box: view-box; transition: transform .35s ease; }
@@ -251,8 +256,7 @@
     #ace .gw-brows { transition: transform .18s ease; }
     #ace.brows .gw-brows { transform: translateY(-3.5px); }
     #ace.off { display: none; }
-    #aceUnlock { position: fixed; left: 50%; top: 84px; transform: translateX(-50%); z-index: 60; }
-    @media (max-width: 900px) { #ace .bubble { font-size: 18px; margin-bottom: 56px; } #ace svg { width: 100px; height: 125px; } }
+    #aceUnlock { position: fixed; left: 50%; top: 5.25rem; transform: translateX(-50%); z-index: 60; }
     @media (prefers-reduced-motion: reduce) { #ace.talking .gw-head, #ace.talking .mascot { animation: none; } }
   `;
   document.head.appendChild(css);
@@ -382,6 +386,8 @@
 
   function applyMode() {
     root.classList.toggle('off', settings.mode === 'off');
+    document.documentElement.classList.toggle('gene-off', settings.mode === 'off');
+    window.dispatchEvent(new Event('acro:layout'));
     if (settings.mode !== 'voice' && synth) synth.cancel();
     if (settings.mode !== 'ai') stopAudio();
   }
@@ -680,7 +686,7 @@
   function settingsHtml() {
     return `<div class="setting"><span>Announcer</span><div class="seg" id="segAce">
         ${aiAvailable ? '<button data-v="ai">🎙️ AI voice</button>' : ''}<button data-v="voice">🔊 Browser voice</button><button data-v="captions">💬 Captions</button><button data-v="off">Off</button></div></div>
-      <div class="setting" id="aceVoiceRow"><span>Voice</span><select id="aceVoice" class="field" style="min-height:44px;padding:6px 10px;font-size:17px;width:auto;max-width:320px"></select>
+      <div class="setting" id="aceVoiceRow"><span>Voice</span><select id="aceVoice" class="field" style="min-height:2.75rem;padding:0.375rem 0.625rem;font-size:1.0625rem;width:auto;max-width:20rem"></select>
         <button class="btn ghost" id="aceTest">Test</button></div>`;
   }
 

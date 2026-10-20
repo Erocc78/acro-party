@@ -106,12 +106,52 @@
       if (window.Announcer) Announcer.whenQuiet(afterQuiet);
       else afterQuiet();
     }
+    // Content-heavy screens: Gene shrinks so the answers and scores get more room.
+    document.documentElement.classList.toggle('gene-compact', COMPACT_PHASES.includes(s.phase));
     if (key !== renderedKey) {
       renderedKey = key;
       render(s);
     }
     update(s);
+    fitToScreen();
   }
+
+  // ---------- fit to screen ----------
+  // Everything is sized relative to the screen (see host.html). If a screen still has more content than fits
+  // above Gene (lots of long answers on a small display, for example), shrink the game area until it all fits.
+  const COMPACT_PHASES = ['vote', 'results', 'bonus_vote', 'bonus_results', 'gameover'];
+  const canZoom = 'zoom' in document.documentElement.style;
+  let fitQueued = false;
+  function fitToScreen() {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => {
+      fitQueued = false;
+      const header = document.querySelector('header');
+      const band = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+      const avail = window.innerHeight - header.offsetHeight - band;
+      if (canZoom) app.style.zoom = '';
+      else app.style.transform = '';
+      const needed = app.scrollHeight;
+      if (needed <= avail || avail <= 0) return;
+      const z = Math.max(0.5, Math.floor((avail / needed) * 100) / 100);
+      if (canZoom) {
+        app.style.zoom = String(z);
+        // Zoom lets the content reflow wider, which can change its height; nudge down until it fits.
+        for (let zz = z, i = 0; i < 8 && app.getBoundingClientRect().height > avail + 1 && zz > 0.5; i++) {
+          zz = Math.max(0.5, zz - 0.04);
+          app.style.zoom = String(zz);
+        }
+      } else {
+        app.style.transform = `scale(${z})`;
+      }
+    });
+  }
+  window.addEventListener('resize', fitToScreen);
+  window.addEventListener('acro:layout', fitToScreen);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen);
+  // Answers and results animate in; check again once they've settled.
+  new MutationObserver(() => fitToScreen()).observe(app, { childList: true, subtree: true });
 
   // Pause screen with a big Resume button (the overlay covers the top bar, so it needs its own).
   function drawPaused(s) {
@@ -120,8 +160,8 @@
     if (!s.paused) return;
     if (!el.querySelector('#resumeBtn')) {
       el.innerHTML = `<div class="paused-box"><div class="paused-title">⏸ Paused</div>
-        <button class="btn" id="resumeBtn" style="font-size:28px;min-height:72px;padding:16px 40px">▶ Resume game</button>
-        <div class="muted" style="font-size:18px">or press the space bar</div></div>`;
+        <button class="btn" id="resumeBtn" style="font-size:1.75rem;min-height:4.5rem;padding:1rem 2.5rem">▶ Resume game</button>
+        <div class="muted" style="font-size:1.125rem">or press the space bar</div></div>`;
       el.querySelector('#resumeBtn').onclick = () => host('resume');
     }
   }
@@ -205,14 +245,14 @@
           <div class="card settings">
             <div class="setting"><span>Rounds</span><div class="seg" id="segRounds">${[5, 6, 7, 8].map((n) => `<button data-v="${n}">${n}</button>`).join('')}</div></div>
             ${s.mode === 'kid' ? `<div class="setting"><span>Kids' extra time</span><div class="seg" id="segTime">${[[0, 'Off'], [10, '+10 s'], [20, '+20 s']].map(([v, t]) => `<button data-v="${v}">${t}</button>`).join('')}</div></div>` : ''}
-            <details class="more"><summary>🔊 Sound, announcer and display</summary><div class="settings" style="margin-top:14px">
+            <details class="more"><summary>🔊 Sound, announcer and display</summary><div class="settings" style="margin-top:0.875rem">
             <div class="setting"><span>Display</span><div class="seg" id="segLite"><button data-v="0">✨ Full effects</button><button data-v="1">📺 TV mode (smoother)</button></div></div>
             ${window.Announcer ? Announcer.settingsHtml() : ''}
             ${window.Soundtrack ? Soundtrack.settingsHtml() : ''}
             </div></details>
           </div>
-          <button class="btn block" id="startBtn" style="min-height:68px;font-size:26px">Start game</button>
-          <div class="err center" id="flash" style="margin-top:10px"></div>
+          <button class="btn block" id="startBtn" style="min-height:4.25rem;font-size:1.625rem">Start game</button>
+          <div class="err center" id="flash" style="margin-top:0.625rem"></div>
         </div>
       </div>`,
 
@@ -259,8 +299,8 @@
         <div class="stage">
           <div class="toprow"><div class="kicker">${roundLabel(s)} · Results</div>${tiles(s.letters, 'sm-tiles')}<div class="next-in"><span class="muted">${s.roundIndex + 1 >= s.totalRounds ? 'Lightning round in' : 'Next round in'}</span>${timerHtml(90, 8)}</div></div>
           ${res.solo ? '<div class="muted">Only one answer came in, so it wins the round!</div>' : res.noVote && res.rows.length ? '<div class="muted">Not enough answers to vote this round.</div>' : ''}
-          <div class="results">
-            <div>${rows}
+          <div class="results ${res.rows.length > 4 ? 'many' : ''} ${res.rows.length > 7 ? 'lots' : ''}">
+            <div><div class="rows">${rows}</div>
               ${res.pickedWinner.length ? `<p class="muted">Picked the winner (+1): ${res.pickedWinner.map(esc).join(', ')}</p>` : ''}</div>
             <div><h2>Scores</h2>${scoreboard(s.players, true)}</div>
           </div>
@@ -273,7 +313,7 @@
         <div class="stage">
           <div class="kicker">⚡ Lightning round</div>
           <div class="vs"><div class="who"><span class="avatar">${a.avatar}</span>${esc(a.name)}</div><span class="mid">VS</span><div class="who"><span class="avatar">${b.avatar}</span>${esc(b.name)}</div></div>
-          <div class="muted" style="font-size:28px">3 acronyms back to back, ${s.lightningSecs} seconds each.<br>Everyone else judges once all 3 entries are in.</div>
+          <div class="muted" style="font-size:1.75rem">3 acronyms back to back, ${s.lightningSecs} seconds each.<br>Everyone else judges once all 3 entries are in.</div>
         </div>`;
     },
 
@@ -319,7 +359,7 @@
                 <span class="meta">${res.votes[o.label]} vote${res.votes[o.label] === 1 ? '' : 's'}${o.at != null ? ` · ${(o.at / 1000).toFixed(1)} s` : ''}</span></div>`;
               })
               .join('')}
-            ${why ? `<div class="muted" style="font-size:18px">${why}</div>` : ''}</div>`;
+            ${why ? `<div class="muted" style="font-size:1.125rem">${why}</div>` : ''}</div>`;
         })
         .join('');
       return `
@@ -336,8 +376,8 @@
         <div class="stage">
           ${c ? `<div class="champ"><div class="kicker">🏆 Champion</div><div class="avatar">${c.avatar}</div><div class="title">${esc(c.name)}</div>
             ${c.forfeit ? '<div class="muted">Won by forfeit</div>' : ''}${c.noBonus ? '<div class="muted">Not enough players left for a lightning round</div>' : ''}</div>` : ''}
-          <div style="width:min(720px,100%);text-align:left"><h2>Final standings</h2>
-            <p class="muted" style="margin:-4px 0 12px;font-size:18px">The lightning round decides the champion. Points decide the other places.</p>${scoreboard(s.players, false)}</div>
+          <div style="width:min(45rem,100%);text-align:left"><h2>Final standings</h2>
+            <p class="muted" style="margin:-4px 0 0.75rem;font-size:1.125rem">The lightning round decides the champion. Points decide the other places.</p>${scoreboard(s.players, false)}</div>
           <div class="actions"><button class="btn" id="againBtn">Play again</button></div>
           <div class="err" id="flash"></div>
         </div>`;

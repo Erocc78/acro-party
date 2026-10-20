@@ -134,6 +134,8 @@ How it protects your credits: the key stays on the server, only the TV screen of
 
 ## What's in the prototype
 
+- **Fits any screen:** the TV screen scales with the display (small laptop window, 1080p TV or 4K), so it looks the same everywhere instead of getting cramped. Gene stands in his own strip along the bottom and shrinks on busy screens (voting, results, final standings), so he never covers the game. If a screen still has more than fits (say ten long answers on a small display), the game area shrinks a little more until every answer is visible. With lots of answers, results show in two columns.
+
 - **How to Play page** at `/how-to-play`, opened from the 📖 How to play button on the game-mode screen: a step-by-step tutorial with real screenshots of the TV and phones (joining, random letters, voting, scoring and bonus points, the Lightning Round and the champion). It's a normal page in the game, not a pop-up; Back to the game returns to the start screen.
 
 - Kid-friendly or Adult mode, chosen first. Kid mode turns on the naughty word filter for answers and nicknames (a naughty answer flashes "Naughty!" on the phone, then just that word is deleted so the player can type a new one), skips rude letter sets, and starts with +10 seconds of kids' extra time. Adult mode asks every player to confirm they're 18 or older.
