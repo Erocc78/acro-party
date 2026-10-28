@@ -79,6 +79,8 @@
 
   function connect() {
     if (disconnect) disconnect();
+    // Keep the TV/laptop screen from going to sleep during the game (see keepawake.js).
+    if (window.KeepAwake) KeepAwake.enable();
     disconnect = Acro.connect({ code: session.code, role: 'host', hostToken: session.hostToken }, onState, () => {
       Acro.store.del('acro-host');
       session = null;
@@ -313,7 +315,7 @@
         <div class="stage">
           <div class="kicker">⚡ Lightning round</div>
           <div class="vs"><div class="who"><span class="avatar">${a.avatar}</span>${esc(a.name)}</div><span class="mid">VS</span><div class="who"><span class="avatar">${b.avatar}</span>${esc(b.name)}</div></div>
-          <div class="muted" style="font-size:1.75rem">3 acronyms back to back, ${s.lightningSecs} seconds each.<br>Everyone else judges once all 3 entries are in.</div>
+          <div class="muted" style="font-size:1.75rem">3 acronyms back to back: ${s.lightningTimes.join(', ').replace(/, (\d+)$/, ' and $1')} seconds.<br>Everyone else judges once all 3 entries are in.</div>
         </div>`;
     },
 

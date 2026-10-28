@@ -210,7 +210,7 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 // ---------- HTTP helpers ----------
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.webm': 'video/webm' };
 const ROUTES = { '/': 'index.html', '/host': 'host.html', '/play': 'play.html', '/how-to-play': 'how.html' };
 
 function sendJson(res, status, obj) {
@@ -250,8 +250,21 @@ function serveStatic(req, res, pathname) {
   read(file, (err, buf) => {
     if (err) return sendJson(res, 404, { error: 'Not found' });
     // Music and tutorial pictures are big and rarely change, so browsers may keep them for a day; everything else is always fresh.
-    const cache = ['.mp3', '.jpg'].includes(path.extname(file)) ? 'public, max-age=86400' : 'no-store';
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': cache });
+    const cache = ['.mp3', '.jpg', '.mp4', '.webm'].includes(path.extname(file)) ? 'public, max-age=86400' : 'no-store';
+    const type = TYPES[path.extname(file)] || 'application/octet-stream';
+    // Byte ranges: iPhones only play video (and seek audio) when the server supports them.
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      let start = m[1] ? Number(m[1]) : Math.max(0, buf.length - Number(m[2]));
+      let end = m[1] && m[2] ? Math.min(Number(m[2]), buf.length - 1) : buf.length - 1;
+      if (start >= buf.length || start > end) {
+        res.writeHead(416, { 'Content-Range': `bytes */${buf.length}` });
+        return res.end();
+      }
+      res.writeHead(206, { 'Content-Type': type, 'Cache-Control': cache, 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${buf.length}`, 'Content-Length': end - start + 1 });
+      return res.end(buf.subarray(start, end + 1));
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache, 'Accept-Ranges': 'bytes', 'Content-Length': buf.length });
     res.end(buf);
   });
 }

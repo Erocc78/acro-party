@@ -106,16 +106,38 @@
     });
   }
 
+  function onGone(why) {
+    if (!seat) return;
+    const code = seat.code;
+    Acro.store.del('acro-player');
+    seat = null;
+    if (window.KeepAwake) KeepAwake.disable();
+    showCode(why === 'room' ? '' : code, why === 'room' ? 'That game has ended.' : 'Your seat expired. Join again.');
+  }
+
   function connect() {
     if (disconnect) disconnect();
     app.innerHTML = '<div class="middle muted">Connecting…</div>';
-    disconnect = Acro.connect({ code: seat.code, role: 'player', token: seat.token }, onState, (why) => {
-      const code = seat.code;
-      Acro.store.del('acro-player');
-      seat = null;
-      showCode(why === 'room' ? '' : code, why === 'room' ? 'That game has ended.' : 'Your seat expired. Join again.');
-    });
+    renderedKey = null;
+    disconnect = Acro.connect({ code: seat.code, role: 'player', token: seat.token }, onState, onGone);
+    // Keep the phone's screen on while playing (see keepawake.js).
+    if (window.KeepAwake) KeepAwake.enable();
   }
+
+  // Coming back to the game (phone unlocked, switched back from another app, or the network came back):
+  // the old connection is often dead by then, so open a fresh one right away instead of waiting for it to
+  // time out. The screen stays as it is (including anything typed), and updates as soon as the game answers.
+  let lastStateAt = Date.now();
+  function resync() {
+    if (!seat) return;
+    if (disconnect) disconnect();
+    disconnect = Acro.connect({ code: seat.code, role: 'player', token: seat.token }, onState, onGone);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - lastStateAt > 2000) resync();
+  });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) resync(); });
+  window.addEventListener('online', resync);
 
   // ---------- game screens ----------
   function onState(s) {
@@ -132,6 +154,7 @@
       return;
     }
     state = s;
+    lastStateAt = Date.now();
     document.getElementById('paused').classList.toggle('hidden', !s.paused);
     top.innerHTML = `<div class="me"><span class="avatar">${s.me.avatar}</span><span>${esc(s.me.name)}</span></div>
       <span class="badge ${s.mode}">${s.mode === 'kid' ? '🧸' : '18+'}</span><span class="score">${s.me.score} pts</span>
@@ -217,10 +240,10 @@
 
     bonus_intro: (s) => {
       const [a, b] = s.bonus.finalists;
-      const secs = s.lightningSecs;
+      const secs = s.lightningTimes;
       return s.bonus.role === 'finalist'
         ? `<div class="middle"><div class="bigicon">⚡</div><h1>You're in the lightning round!</h1>
-           <p class="muted">${a.avatar} ${esc(a.name)} vs ${b.avatar} ${esc(b.name)}<br>3 acronyms, ${secs} seconds each. Think fast!</p></div>`
+           <p class="muted">${a.avatar} ${esc(a.name)} vs ${b.avatar} ${esc(b.name)}<br>3 acronyms: ${secs.join(', ').replace(/, (\d+)$/, ' and $1')} seconds. Think fast!</p></div>`
         : `<div class="middle"><div class="bigicon">⚖️</div><h1>You're a judge!</h1>
            <p class="muted">${a.avatar} ${esc(a.name)} vs ${b.avatar} ${esc(b.name)}<br>You'll vote once all 3 entries are in.</p></div>`;
     },

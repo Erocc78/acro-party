@@ -41,8 +41,8 @@
     fastest: { any: ['{name} was fastest on the buzzer.', 'Speed bonus goes to {name}!'] },
     leader: { any: ['{name} leads with {score} points.', '{name} is out in front with {score}!', 'At the top of the board: {name}, with {score}.'] },
     lightningIntro: {
-      kid: ["It's time for... the lightning round! {a} versus {b}! Three acronyms, {secs} seconds each. Everyone else, you're the judges!"],
-      adult: ["Ladies and gentlemen, it's time for the lightning round! {a} versus {b}! Three acronyms, {secs} seconds each. Everyone else, you're the judges."],
+      kid: ["It's time for... the lightning round! {a} versus {b}! Three acronyms: {secs} seconds. Everyone else, you're the judges!"],
+      adult: ["Ladies and gentlemen, it's time for the lightning round! {a} versus {b}! Three acronyms: {secs} seconds. Everyone else, you're the judges."],
     },
     lightning: { any: ['Lightning {n}: {spelled}!', 'Lightning round {n}. Your letters: {spelled}!'] },
     fiveLeft: { any: ['Five seconds!', 'Five!'] },
@@ -633,11 +633,11 @@
       }
       case 'bonus_intro': {
         const [a, b] = s.bonus.finalists;
-        say(line('lightningIntro', mode, { a: a.name, b: b.name, secs: s.lightningSecs }), { interrupt: true });
+        say(line('lightningIntro', mode, { a: a.name, b: b.name, secs: listNames(s.lightningTimes.map(String)) }), { interrupt: true });
         break;
       }
       case 'bonus_reveal':
-        say(line('lightning', mode, { n: s.bonus.index + 1, spelled: spell(s.letters) }) + ' ' + line('timeLimit', mode, { secs: s.lightningSecs }), { interrupt: true });
+        say(line('lightning', mode, { n: s.bonus.index + 1, spelled: spell(s.letters) }) + ' ' + line('timeLimit', mode, { secs: s.lightningTimes[s.bonus.index] || s.lightningSecs }), { interrupt: true });
         break;
       case 'bonus_vote':
         say(line('lightningVote', mode), { interrupt: true });
