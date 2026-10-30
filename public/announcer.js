@@ -397,7 +397,8 @@
   // interrupt: a new moment in the game. Lines still waiting are dropped, and the line Gene is saying
   //   finishes its sentence first (he is never cut off mid-sentence) unless hard is set.
   // expiresIn: skip the line if it can't start within this many ms (for time-sensitive lines like "Five seconds!").
-  function say(text, { interrupt = false, hard = false, expiresIn = 0 } = {}) {
+  // keep: always queue this line (used to read out every answer), even when other chatter is piling up.
+  function say(text, { interrupt = false, hard = false, expiresIn = 0, keep = false } = {}) {
     if (!text || settings.mode === 'off') return;
     // Start generating the AI audio right away so it's ready when it's this line's turn.
     const tts = useAI() ? fetchTTS(text) : null;
@@ -427,7 +428,7 @@
         speaking = false;
       }
     } else {
-      if (queue.length >= 4) return; // don't let chatter pile up
+      if (queue.length >= 4 && !keep) return; // don't let chatter pile up
       queue.push(item);
     }
     if (!speaking) next();
@@ -611,7 +612,9 @@
         break;
       case 'vote': {
         say(line('vote', mode), { interrupt: true });
-        if (s.options.length <= 6) s.options.forEach((o) => say(line('readOption', mode, { n: o.n, text: o.text })));
+        // Read out every answer. When everyone has voted the game moves on to the results, which drops any
+        // answers he hasn't got to yet (he finishes the one he's reading first).
+        s.options.forEach((o) => say(line('readOption', mode, { n: o.n, text: o.text }), { keep: true }));
         break;
       }
       case 'results': {
